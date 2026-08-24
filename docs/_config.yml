@@ -1,0 +1,4 @@
+theme: jekyll-theme-cayman
+title: qbdrugs
+description: "Config-driven, multi-drug-type production/economy job built on qbcore + qblib"
+show_downloads: false
