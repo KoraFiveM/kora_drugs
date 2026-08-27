@@ -11,28 +11,24 @@ Drugs = Drugs or {}
 ---@param stageName string
 ---@param station QBDrugsStation
 function Drugs.runStation(drugName, stageName, station)
-    local token, beginErr = QB.callback.trigger('qbdrugs:server:beginStation', drugName, stageName)
-    if not token then
+    local started, beginErr = QB.actions.run({
+        label = station.label,
+        duration = station.duration,
+        minigame = station.minigame,
+        canCancel = true,
+        disable = { move = true, combat = true },
+        begin = function(drug, stage)
+            return QB.callback.trigger('qbdrugs:server:beginStation', drug, stage)
+        end,
+        complete = function(result, drug, stage)
+            TriggerServerEvent('qbdrugs:server:useStation', drug, stage,
+                result.token, result.completed, result.proof)
+        end,
+    }, drugName, stageName)
+
+    if not started then
         QB.notify.send({ title = station.label, message = beginErr or 'Unable to begin this action.', type = 'error' })
-        return
     end
-
-    local completed
-    local proof
-    if station.minigame then
-        local result = Citizen.Await(QB.minigames.play(station.minigame, { duration = station.duration }))
-        completed = result and result.success
-        proof = completed and result.proof or nil
-    else
-        completed = QB.progressbar.start({
-            label = station.label,
-            duration = station.duration or 5000,
-            canCancel = true,
-            disable = { move = true, combat = true },
-        })
-    end
-
-    TriggerServerEvent('qbdrugs:server:useStation', drugName, stageName, token, completed == true, proof)
 end
 
 ---@param drugName string
