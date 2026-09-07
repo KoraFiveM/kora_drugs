@@ -10,6 +10,6 @@ for _, event in pairs(events) do
         event.action(src)
     end)
 end
-exports.qbconsumables:addConsumable(Step.bagging.recipe.receive.item, {
-    type = 'smoke'
-})
+--exports.qbconsumables:addConsumable(Step.bagging.recipe.receive.item, {
+--    type = 'smoke'
+--})

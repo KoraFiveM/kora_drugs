@@ -12,6 +12,6 @@ for _, event in pairs(events) do
     end)
 end
 
-exports.qbconsumables:addConsumable(Step.bagging.recipe.receive.item, {
-    type = 'coke'
-})
+--exports.qbconsumables:addConsumable(Step.bagging.recipe.receive.item, {
+--    type = 'coke'
+--})

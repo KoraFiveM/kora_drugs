@@ -13,6 +13,6 @@ for _, event in pairs(events) do
     end)
 end
 
-exports.qbconsumables:addConsumable(Step.syringe.recipe.receive.item, {
-    type = 'inject'
-})
+--exports.qbconsumables:addConsumable(Step.syringe.recipe.receive.item, {
+--    type = 'inject'
+--})

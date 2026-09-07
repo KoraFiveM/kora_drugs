@@ -43,8 +43,8 @@ local function getWeedData()
         strain = strains[classification][item],
         classification = classification,
         weight = math.random(10, 28) .. 'g',
-        thc = math.random(10, 30) .. '%',
-        cbd = math.random(5, 20) .. '%'
+        thc = math.random(Config.Weed.percents.thc.min, Config.Weed.percents.thc.max) .. '%',
+        cbd = math.random(Config.Weed.percents.cbd.min, Config.Weed.percents.cbd.max) .. '%'
     }
 end
 
@@ -164,10 +164,10 @@ exports['qb-core']:CreateUseableItem('rolling_paper', function(source, item)
     end
 end)
 
-for k, itemName in pairs(jointItem) do
-    if itemName ~= 'blue_dream_joint' then
-        exports.qbconsumables:addConsumable(itemName, {
-            type = 'smoke'
-        })
-    end
-end
+--for k, itemName in pairs(jointItem) do
+--    if itemName ~= 'blue_dream_joint' then
+--        exports.qbconsumables:addConsumable(itemName, {
+--            type = 'smoke'
+--        })
+--    end
+--end
