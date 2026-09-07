@@ -174,7 +174,10 @@ Config = {
             { coords = vector3(-2190.08, 5230.31, 19.81), taken = false },
             { coords = vector3(-2185.22, 5213.29, 19.03), taken = false }
         },
-
+        percents = {
+            thc = { min = 10, max = 30 },
+            cbd = { min = 5, max = 20 }
+        },
         pickingData = {
             targetLabel = 'Pick Weed',
             targetIcon = 'weed',
@@ -251,5 +254,31 @@ DrugConfig = {
                 }
             }
         }
+    }
+}
+
+CornerSelling = {
+    maxSell = 15, -- Maximum amount of drugs that can be sold at the corner at once
+    ripOff = 0.2, -- Percentage of the price that the player gets ripped off when selling at the corner
+    minPolice = 0, -- Minimum number of police required for corner selling
+    weedPercentAdjustable = true, -- Whether the percentage of THC and CBD makes a difference on price
+    weedPercentFlow = 0.2, -- the amount the price is affected by the THC and CBD percentage (e.g., 0.2 means a 20% change up or down)
+    pricing = { -- Item | Price in cash 
+        cocaine_baggy = 20,
+        crack_bag = 15,
+        heroin_vial = 20,
+        ak47_1g = 15,
+        amnesia_1g = 15,
+        og_kush_1g = 15,
+        blue_dream_1g = 15,
+        purple_haze_1g = 15,
+        skunk_1g = 15,
+        ak47_joint = 20,
+        amnesia_joint = 20,
+        og_kush_joint = 20,
+        blue_dream_joint = 20,
+        purple_haze_joint = 20,
+        skunk_joint = 20,
+        white_widow_joint = 20
     }
 }
