@@ -4,7 +4,7 @@ lua54 'yes'
 author 'Kakarot'
 description 'Allows players to deliver packages and sell drugs to npcs'
 version '1.3.0'
-ui_page 'web/build/index.html'
+dependency 'qblib'
 shared_scripts {
     '@qblib/init.lua',
     'shared/config.lua',
@@ -22,8 +22,5 @@ server_scripts {
 }
 
 files {
-	'locales/**.lua',
-	'web/build/index.html',
-  'web/build/**/*'
-
+    'locales/**.lua',
 }

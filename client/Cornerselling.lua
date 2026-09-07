@@ -1,9 +1,9 @@
 local isSelling = false
 local previous = {}
 local buyer = nil
-local p
 local Items = exports['qb-core']:GetShared('Items')
 local drugDeal = nil
+local isOfferOpen = false
 local function handShake(initiatorPed, receiverPed, onFinished)
     if not DoesEntityExist(initiatorPed) or not DoesEntityExist(receiverPed) then
         return
@@ -18,28 +18,6 @@ local function handShake(initiatorPed, receiverPed, onFinished)
         SetTimeout(3000, onFinished)
     end
 end
-
-local function resolve(bool) 
-    if p then
-        p:resolve(bool)
-    end
-end
-
-RegisterNUICallback('accept', function(data, cb)
-    SetNuiFocus(false, false)
-    resolve(true)
-    cb('ok')
-end)
-RegisterNUICallback('decline', function(data, cb)
-    SetNuiFocus(false, false)
-    resolve(false)
-    cb('ok')
-end)
-RegisterNUICallback('hideUI', function(data, cb)
-    SetNuiFocus(false, false)
-    resolve(false)
-    cb('ok')
-end)
 
 local function passChecks(id)
     local isPedHuman = IsPedHuman(id)
@@ -56,7 +34,6 @@ local function endBuyer()
         SetEntityAsNoLongerNeeded(buyer)
         previous[buyer] = true
         buyer = nil
-        p = nil
         exports['qb-core']:HideText()
     end
 end
@@ -99,26 +76,33 @@ local function findBuyer()
             icon = "fas fa-hand-holding",
             label = "Sell to Buyer",
             onSelect = function()
-                p = promise.new()
-                SendNUIMessage({
-                    action = 'setVisible',
-                    data = {
-                        img = drugDeal.img,
-                        itemLabel = drugDeal.itemLabel,
-                        total = drugDeal.total,
-                        singlePrice = drugDeal.singlePrice,
-                        amount = drugDeal.amount,
+                if isOfferOpen then return end
 
-                    }
+                isOfferOpen = true
+                local offerBuyer = buyer
+                local result = QB.nui.openAlert({
+                    title = 'Confirm sale',
+                    message = ('Sell %dx %s for $%.2f? ($%.2f each)'):format(
+                        drugDeal.amount,
+                        drugDeal.itemLabel,
+                        drugDeal.total,
+                        drugDeal.singlePrice
+                    ),
+                    image = drugDeal.img,
+                    confirmLabel = 'Sell',
+                    cancelLabel = 'Decline',
                 })
-                SetNuiFocus(true, true)
-                local result = Citizen.Await(p)
-                if result then
-                    handShake(PlayerPedId(), buyer, function() ClearPedTasks(buyer) ClearPedTasks(PlayerPedId()) end)
-                    TriggerServerEvent('qbdrugs:sellToBuyer', NetworkGetNetworkIdFromEntity(buyer))
+
+                isOfferOpen = false
+                if result and result.confirmed and isSelling and buyer == offerBuyer then
+                    handShake(PlayerPedId(), offerBuyer, function()
+                        ClearPedTasks(offerBuyer)
+                        ClearPedTasks(PlayerPedId())
+                    end)
+                    TriggerServerEvent('qbdrugs:sellToBuyer', NetworkGetNetworkIdFromEntity(offerBuyer))
                 end
                 endBuyer()
-                findBuyer()
+                if isSelling then findBuyer() end
             end,
         }
     })
@@ -129,7 +113,6 @@ RegisterCommand('cornerSell', function(source)
     if isSelling then
         findBuyer()
     else
-        resolve(false)
         endBuyer()
         exports['qb-core']:HideText()
     end
