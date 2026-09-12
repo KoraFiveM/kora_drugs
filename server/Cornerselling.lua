@@ -69,9 +69,11 @@ end)
 
 RegisterNetEvent('qbdrugs:sellToBuyer', function(netId)
     local src = source
-    local buyer = NetworkGetEntityFromNetworkId(netId)
-    assert(buyer, "Buyer entity could not be found")
-    assert(GetNetTypeFromEntity(buyer) == 6, "Buyer entity is not a ped")
+    local buyer = QB.world.resolveNetworkEntity(src, netId, {
+        entityType = 'ped',
+        maxDistance = 5.0,
+    })
+    if not buyer then return end
     local sellData = inProgress[src]
     if not sellData then return end
     if hasSale[src] and hasSale[src][buyer] then return end
