@@ -32,13 +32,6 @@ local function spawnProps(name, model, coords, id)
     Config[name].plantTbl[id] = obj
 end
 
-local function awaitGlobalState(name)
-    while not GlobalState[name] do
-        Wait(100)
-    end
-    return GlobalState[name]
-end
-
 for k, v in pairs (Config) do
     if v.disabled then
         goto skip
@@ -57,7 +50,11 @@ for k, v in pairs (Config) do
 
     RegisterNetEvent('qb_drugs:client:plantInit'..k, function()
         if not v.plantTbl then v.plantTbl = {} end
-        local plants = awaitGlobalState(k)
+        local plants = QB.state.awaitGlobal(k, 30000, 100)
+        if not plants then
+            print(('[qbdrugs] timed out waiting for GlobalState.%s'):format(k))
+            return
+        end
         for key, value in pairs (plants) do
             if not value.taken then
                spawnProps(k, v.model, value.coords, key)
