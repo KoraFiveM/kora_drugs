@@ -1,10 +1,6 @@
 
 Config = {
-    DefaultProgress = {
-        progressTime = 5000,
-        progressAnim = {dict = 'mp_arresting', clip = 'a_uncuff', flags = 17},
-        progressDisable = {move = true, combat = true, car = true}
-    },
+    
     Cocaine = {
         model = 'prop_plant_01a',
         item = 'coca_leaf',
@@ -281,4 +277,10 @@ CornerSelling = {
         skunk_joint = 20,
         white_widow_joint = 20
     }
+}
+
+DefaultProgress = {
+    progressTime = 5000,
+    progressAnim = {dict = 'mp_arresting', clip = 'a_uncuff', flags = 17},
+    progressDisable = {move = true, combat = true, car = true}
 }

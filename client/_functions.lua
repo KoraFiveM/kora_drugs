@@ -37,9 +37,9 @@ function returnBasicOption(step, event)
                 Busy = true
                 local progress = QB.progressbar.start({
                     label = step.progressLabel or "Missing Text, IDK What youre doing",
-                    duration = step.progressTime or Config.DefaultProgress.progressTime,
-                    disable = step.progressDisable or Config.DefaultProgress.progressDisable,
-                    anim = step.progressAnim or Config.DefaultProgress.progressAnim
+                    duration = step.progressTime or DefaultProgress.progressTime,
+                    disable = step.progressDisable or DefaultProgress.progressDisable,
+                    anim = step.progressAnim or DefaultProgress.progressAnim
                 })
                 if progress then
                     TriggerServerEvent(event)
