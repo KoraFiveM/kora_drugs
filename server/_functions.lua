@@ -28,6 +28,9 @@ function craft(src, recipe, meta)
             end
         end
     end
+    if not recipe.receive or not recipe.receive.item then
+        return true
+    end
     return exports['qb-inventory']:AddItem(src, recipe.receive.item, recipe.receive.amount, nil, meta)
 end
 
