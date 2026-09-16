@@ -1,6 +1,5 @@
 
 Config = {
-    
     Cocaine = {
         model = 'prop_plant_01a',
         item = 'coca_leaf',
@@ -248,6 +247,62 @@ DrugConfig = {
                         {item = 'gram_bag',   amount = 1}
                     }
                 }
+            }
+        }
+    },
+    Meth = {
+        cook_recipe = {
+            receive = {},
+            give = {
+                {item = 'ephedrine', amount = 1},
+                {item = 'acetone', amount = 1},
+                {item = 'gram_bag', amount = 5}
+            }
+        },
+        bag_recipe = {
+            receive = {item = 'meth_bag', amount = 5},
+            give = {} -- reason nothing to give back, all ingredients are consumed in cook_recipe to ensure you dont get to the end without having completed the cookbook
+        },
+        Steps = { -- IF YOU DONT KNOW WHAT YOURE DOING DONT CHANGE THE COORDS FOR ANYTHING BESIDES TELE
+            Tele = {
+                outside = vector3(981.07, -1805.58, 35.80),
+                inside = vector3(996.91, -3200.83, -36.39),
+                targetLabelIn = 'Exit Lab',
+                targetLabelOut = 'Enter Lab',
+                targetIconIn = 'fa-solid fa-arrow-right',
+                targetIconOut = 'fa-solid fa-arrow-left',
+            },
+            Pour = {
+                coords = vector3(1006.09, -3200.59, -38.52),
+                offset = vec3(4.79, 2.13, -0.41),
+                rotation = vec3(0.0, 0.0, 0.0),
+                targetLabel = 'Pour Chemicals',
+                targetIcon = 'fa-solid fa-flask',
+                trayLabel = 'Grab Tray',
+                trayIcon = 'fa-solid fa-hand-paper',
+            },
+            Heat = {
+                coords = vector3(1007.89, -3201.17, -38.99),
+                explosion = true,
+                targetLabel = 'Heat Chemicals',
+                targetIcon = 'fa-solid fa-fire',
+            },
+            Smash = {
+                coords = vector3(1012.04, -3194.96, -38.99),
+                bucket = vector4(1012.86, -3194.13, -39.20, 90.00),
+                size = vector3(1.0, 1.0, 2.0),
+                offset = vec3(-3.143311, -1.666748, -1.010128),
+                rotation = vector3(0,0,0.0),
+                targetLabel = 'Smash Meth',
+                targetIcon = 'fa-solid fa-hammer',
+            },
+            Bag = {
+                coords =  vector3(1014.25, -3194.93, -38.99),
+                size = vector3(1.0, 1.0, 2.0),
+                offset = vec3(-4.9, -1.70, -1.01),
+                rotation = vector3(0,0,0.0),
+                targetLabel = 'Bag Meth',
+                targetIcon = 'fa-solid fa-bag-shopping',
             }
         }
     }
