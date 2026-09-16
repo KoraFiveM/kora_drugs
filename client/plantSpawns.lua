@@ -1,6 +1,6 @@
 
 local Busy = false
-local function PickDrugs(name, loc)
+local function pickDrugs(name, loc)
     Busy = true
     if QB.progressbar.start({
         label = Config[name].pickingData.progressLabel or "Picking",
@@ -22,7 +22,7 @@ local function spawnProps(name, model, coords, id)
             icon = Config[name].pickingData.targetIcon or 'cocaine',
             label = Config[name].pickingData.targetLabel or 'Pick Drugs',
             onSelect = function()
-                PickDrugs(name, id)
+                pickDrugs(name, id)
             end,
             canInteract = function()
                 return not Busy

@@ -3,7 +3,7 @@ if Config and Config.Cocaine and Config.Cocaine.disabled then
     return
 end
 
-local function SetStage()
+local function setStage()
     CreateThread(function()
         if GetResourceState('bob74_ipl') ~= 'missing' then
             while GetResourceState('bob74_ipl') ~= 'started' do
@@ -17,11 +17,11 @@ local function SetStage()
     end)
 end
 
-SetStage()
+setStage()
 local cuttingcoke = false
 local baggingcoke = false
 
-local function CutCoke(coords, offset, rotation)
+local function cutCoke(coords, offset, rotation)
 	cuttingcoke = true
 	local animDict, animName = "anim@amb@business@coc@coc_unpack_cut_left@", "coke_cut_v5_coccutter"
 	QB.stream.loadAnimDict(animDict)
@@ -67,7 +67,7 @@ local function CutCoke(coords, offset, rotation)
 	cuttingcoke = false
 end
 
-local function BagCoke(coords, offset, rotation)
+local function bagCoke(coords, offset, rotation)
 baggingcoke = true
     local ver = ""
 	local animDict, animName = "anim@amb@business@meth@meth_smash_weight_check@", "break_weigh_"..ver.."char01"
@@ -183,7 +183,7 @@ if Config.Cocaine and Config.Cocaine.steps then
                     onSelect = function()
                         if cuttingcoke or baggingcoke then return end
                         if not itemCheck(data.recipe) then return end
-                        CutCoke(data.coords, data.offset, data.rotation)
+                        cutCoke(data.coords, data.offset, data.rotation)
                         TriggerServerEvent('qb-drugs:server:cutCocaine')
                     end,
                     canInteract = function()
@@ -210,7 +210,7 @@ if Config.Cocaine and Config.Cocaine.steps then
                     onSelect = function()
                         if baggingcoke or cuttingcoke then return end
                         if not itemCheck(step.bagging.recipe) then return end
-                        BagCoke(step.bagging.coords, step.bagging.offset, step.bagging.rotation)
+                        bagCoke(step.bagging.coords, step.bagging.offset, step.bagging.rotation)
                         TriggerServerEvent('qb-drugs:server:bagCocaine')
                     end,
                     canInteract = function()
