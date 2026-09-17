@@ -339,3 +339,10 @@ DefaultProgress = {
     progressAnim = {dict = 'mp_arresting', clip = 'a_uncuff', flags = 17},
     progressDisable = {move = true, combat = true, car = true}
 }
+
+-- DrugConfig and DefaultProgress are public legacy configuration tables.
+-- Keep their aliases intact while registering their authored values with the
+-- resource-owned qblib configuration bridge.
+Config.DrugConfig = DrugConfig
+Config.DefaultProgress = DefaultProgress
+Config = QB.config.adopt(Config)
