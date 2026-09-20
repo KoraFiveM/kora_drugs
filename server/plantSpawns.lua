@@ -8,7 +8,7 @@ local function timeout(src, time)
 end
 
 for plantType, data in pairs (Config) do
-    if data.disabled then
+    if data.disabled or plantType == 'DrugConfig' or plantType == 'DefaultProgress' then
         goto continue
     end
     GlobalState[plantType] = data.locations

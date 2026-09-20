@@ -33,7 +33,7 @@ local function spawnProps(name, model, coords, id)
 end
 
 for k, v in pairs (Config) do
-    if v.disabled then
+    if v.disabled or k == 'DrugConfig' or k == 'DefaultProgress' then
         goto skip
     end
     RegisterNetEvent('qb_drugs:client:plantRespawned'..k, function(loc)
