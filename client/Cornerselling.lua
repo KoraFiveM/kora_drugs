@@ -14,9 +14,10 @@ local function handShake(initiatorPed, receiverPed, onFinished)
 
     TaskPlayAnim(initiatorPed, "mp_ped_interaction", 'handshake_guy_a', 8.0, -8.0, 3000, 0, 0, false, false, false)
     TaskPlayAnim(receiverPed, "mp_ped_interaction", 'handshake_guy_b', 8.0, -8.0, 3000, 0, 0, false, false, false)
-    if onFinished then
-        SetTimeout(3000, onFinished)
-    end
+    SetTimeout(3000, function()
+        RemoveAnimDict("mp_ped_interaction")
+        if onFinished then onFinished() end
+    end)
 end
 
 local function passChecks(id)

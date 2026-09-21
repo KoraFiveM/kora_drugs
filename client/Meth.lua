@@ -53,6 +53,7 @@ local function resetCook()
 		DeleteEntity(trayObject)
 		trayObject = nil
 	end
+	RemoveAnimDict(carryDict)
 	if bucketObject then
 		exports.qbtarget:removeEntity(bucketObject)
 		DeleteEntity(bucketObject)
@@ -179,6 +180,7 @@ local function heatingMeth(coords)
 	QB.stream.loadModel('hei_prop_heist_thermite')
 	loadParticle('scr_ornate_heist')
 	local thermite = CreateObject('hei_prop_heist_thermite', coords.x - 0.5, coords.y - 0.5, coords.z -0.5, true, false, false)
+	SetModelAsNoLongerNeeded(`hei_prop_heist_thermite`)
 	FreezeEntityPosition(thermite, true)
 	SetEntityVisible(thermite, false)
 	Wait(1000)
@@ -186,6 +188,7 @@ local function heatingMeth(coords)
 	Wait(math.random(10000, 20000))
 	StopParticleFxLooped(therm, true)
 	DeleteObject(thermite)
+	RemoveNamedPtfxAsset('scr_ornate_heist')
 end
 
 local function methCooking(coords, offset, rotation)
