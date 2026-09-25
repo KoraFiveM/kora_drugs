@@ -20,7 +20,3 @@ server_scripts {
     'server/_functions.lua',
     'server/**.lua'
 }
-
-files {
-    'locales/**.lua',
-}
