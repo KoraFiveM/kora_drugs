@@ -4,6 +4,7 @@ local buyer = nil
 local Items = exports['qb-core']:GetShared('Items')
 local drugDeal = nil
 local isOfferOpen = false
+local cornerPrompt
 local function handShake(initiatorPed, receiverPed, onFinished)
     if not DoesEntityExist(initiatorPed) or not DoesEntityExist(receiverPed) then
         return
@@ -29,13 +30,13 @@ local function passChecks(id)
 end
 
 local function endBuyer()
+    if cornerPrompt then QB.textui.hide(cornerPrompt); cornerPrompt = nil end
     if buyer then
         ClearPedTasks(buyer)
         SetEntityAsMissionEntity(buyer, false, true)
         SetEntityAsNoLongerNeeded(buyer)
         previous[buyer] = true
         buyer = nil
-        exports['qb-core']:HideText()
     end
 end
 
@@ -49,8 +50,8 @@ local function findBuyer()
         canSell()
     end
     if not drugDeal then return end
+    cornerPrompt = QB.textui.show('Looking for a buyer...')
     repeat
-        exports['qb-core']:DrawText("Looking for a buyer...")
         Wait(1000)
         local ped = QB.closest.ped(GetEntityCoords(PlayerPedId()), 10.0)
         if ped.id then
@@ -63,16 +64,15 @@ local function findBuyer()
             end
         end
     until buyer ~= nil or not isSelling
-    exports['qb-core']:DrawText("Buyer found! <br> On his way To you")
+    QB.textui.update(cornerPrompt, 'Buyer found! <br> On his way To you')
     if not isSelling then endBuyer() return end
     repeat
         Wait(1000)
         TaskGoToCoordAnyMeans(buyer, GetEntityCoords(PlayerPedId()), 1.0, 0, 0, 0, 0)
-    until #(GetEntityCoords(PlayerPedId()) - GetEntityCoords(buyer)) < 2.0 or not isSelling
+    until QB.distance.entity(buyer, 2.0) or not isSelling
     if not isSelling then endBuyer() return end
-    exports['qb-core']:HideText()
     TaskTurnPedToFaceEntity(buyer, PlayerPedId(), -1)
-    exports.qbtarget:addEntity(buyer, {
+    QB.interact.addEntity(buyer, {
         {
             icon = "fas fa-hand-holding",
             label = "Sell to Buyer",
@@ -115,6 +115,6 @@ RegisterCommand('cornerSell', function(source)
         findBuyer()
     else
         endBuyer()
-        exports['qb-core']:HideText()
+        if cornerPrompt then QB.textui.hide(cornerPrompt); cornerPrompt = nil end
     end
 end)
