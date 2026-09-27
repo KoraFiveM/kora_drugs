@@ -50,7 +50,7 @@ local function findBuyer()
         canSell()
     end
     if not drugDeal then return end
-    cornerPrompt = QB.textui.show('Looking for a buyer...')
+    cornerPrompt = QB.textui.show(QB.lang('cornerselling.looking'))
     repeat
         Wait(1000)
         local ped = QB.closest.ped(GetEntityCoords(PlayerPedId()), 10.0)
@@ -64,7 +64,7 @@ local function findBuyer()
             end
         end
     until buyer ~= nil or not isSelling
-    QB.textui.update(cornerPrompt, 'Buyer found! <br> On his way To you')
+    QB.textui.update(cornerPrompt, QB.lang('cornerselling.buyerFound'))
     if not isSelling then endBuyer() return end
     repeat
         Wait(1000)
@@ -74,24 +74,24 @@ local function findBuyer()
     TaskTurnPedToFaceEntity(buyer, PlayerPedId(), -1)
     QB.interact.addEntity(buyer, {
         {
-            icon = "fas fa-hand-holding",
-            label = "Sell to Buyer",
+            icon = QB.lang('cornerselling.sell.icon'),
+            label = QB.lang('cornerselling.sell.target'),
             onSelect = function()
                 if isOfferOpen then return end
 
                 isOfferOpen = true
                 local offerBuyer = buyer
                 local result = QB.nui.openAlert({
-                    title = 'Confirm sale',
-                    message = ('Sell %dx %s for $%.2f? ($%.2f each)'):format(
+                    title = QB.lang('cornerselling.sellAlert.title'),
+                    message = QB.lang('cornerselling.sellAlert.message',
                         drugDeal.amount,
                         drugDeal.itemLabel,
                         drugDeal.total,
                         drugDeal.singlePrice
                     ),
                     image = drugDeal.img,
-                    confirmLabel = 'Sell',
-                    cancelLabel = 'Decline',
+                    confirmLabel = QB.lang('cornerselling.sellAlert.confirmLabel'),
+                    cancelLabel = QB.lang('cornerselling.sellAlert.cancelLabel'),
                 })
 
                 isOfferOpen = false

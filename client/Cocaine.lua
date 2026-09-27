@@ -129,8 +129,8 @@ end
 local function returnTele(lab, coords)
     return {
         {
-            label = lab.targetLabel,
-            icon = lab.targetIcon,
+            label = QB.lang('Cocaine.' .. lab .. '.target'),
+            icon =  QB.lang('Cocaine.' .. lab .. '.icon'),
             onSelect = function()
                 QB.visuals.fade(coords, 500)
             end
@@ -142,32 +142,25 @@ if Config.Cocaine and Config.Cocaine.steps then
     if step.enterLab then
         local lab = Config.Cocaine.steps.enterLab
         exports.qbtarget:addBoxZone({
-            coords = lab.coords,
+            coords = lab,
             size = vector3(1.5, 1.5, 1.5),
             rotation = 180.0,
             distance = 2.0,
-            options = returnTele(lab, step.exitLab.coords),
+            options = returnTele('enter', step.exitLab),
         })
     end
     if step.exitLab then
         local lab = step.exitLab
         exports.qbtarget:addBoxZone({
-            coords = lab.coords,
+            coords = lab,
             size = vector3(1.5, 1.5, 1.5),
             rotation = 180.0,
             distance = 2.0,
-            options = returnTele(lab, step.enterLab.coords),
+            options = returnTele('exit', step.enterLab),
         })
     end
     if step.powdering then
-        local data = step.powdering
-         exports.qbtarget:addBoxZone({
-            coords = data.coords,
-            size = vector3(1.5, 1.5, 1.5),
-            rotation = 180.0,
-            distance = 2.0,
-            options = returnBasicOption(data, "qb-drugs:server:powderCocaine")
-        })
+        basicTarget(step.powdering.coords, step.powdering.rotation, step.powdering, "qb-drugs:server:powderCocaine", 'Cocaine.powdering')
     end
     if step.cutting then
         local data = step.cutting
@@ -178,8 +171,8 @@ if Config.Cocaine and Config.Cocaine.steps then
             distance = 2.0,
             options = {
                 {
-                    label = data.targetLabel,
-                    icon = data.targetIcon,
+                    label = QB.lang('Cocaine.cut.target'),
+                    icon = QB.lang('Cocaine.cut.icon'),
                     onSelect = function()
                         if cuttingcoke or baggingcoke then return end
                         if not itemCheck(data.recipe) then return end
@@ -205,8 +198,8 @@ if Config.Cocaine and Config.Cocaine.steps then
             distance = 2.0,
             options = {
                 {
-                    label = step.bagging.targetLabel,
-                    icon = step.bagging.targetIcon,
+                    label = QB.lang('Cocaine.bag.target'),
+                    icon = QB.lang('Cocaine.bag.icon'),
                     onSelect = function()
                         if baggingcoke or cuttingcoke then return end
                         if not itemCheck(step.bagging.recipe) then return end

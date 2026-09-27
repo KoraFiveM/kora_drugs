@@ -32,8 +32,8 @@ for plantType, data in pairs (Config) do
             GlobalState[plantType] = Config[plantType].locations
             TriggerClientEvent('qb_drugs:client:plantRespawned'..plantType, -1, id)
         end)
-        exports['qb-inventory']:AddItem(src, data.item, math.random(1, (data.maxGive or 1)))
-        timeout(src, data.respawnTime * 1000)
+        exports.qbinventory:addItem(src, data.item, math.random(1, (data.maxGive or 1)))
+        timeout(src, (data and data.pickingData and data.pickingData.time or DefaultProgress.time))
     end)
     ::continue::
 end

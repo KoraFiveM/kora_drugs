@@ -26,20 +26,20 @@ function itemCheck(recipe)
 end
 
 
-function returnBasicOption(step, event)
+function returnBasicOption(step, event, key)
     return {
         {
-            label = step.targetLabel,
-            icon = step.targetIcon,
+            label = QB.lang(key .. '.target'),
+            icon = QB.lang(key .. '.icon'),
             onSelect = function()
                 if Busy then return end
                 if not itemCheck(step.recipe) then return end
                 Busy = true
                 local progress = QB.progressbar.start({
-                    label = step.progressLabel or "Missing Text, IDK What youre doing",
-                    duration = step.progressTime or DefaultProgress.progressTime,
-                    disable = step.progressDisable or DefaultProgress.progressDisable,
-                    anim = step.progressAnim or DefaultProgress.progressAnim
+                    label = QB.lang(key .. '.progress') or "Missing Text, IDK What youre doing",
+                    duration = step.progress and step.progress.time or DefaultProgress.time,
+                    disable = step.progress and step.progress.disable or DefaultProgress.disable,
+                    anim = step.progress and step.progress.anim or DefaultProgress.anim
                 })
                 if progress then
                     TriggerServerEvent(event)
@@ -51,4 +51,12 @@ function returnBasicOption(step, event)
             end
         }
     }
+end
+function basicTarget(coords, rotation, step, event, key)
+    exports.qbtarget:addBoxZone({
+        coords = coords,
+        size = vector3(2,2,2),
+        rotation = rotation,
+        options = returnBasicOption(step, event, key)
+    })
 end

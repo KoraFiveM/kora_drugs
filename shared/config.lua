@@ -23,30 +23,21 @@ Config = {
             { coords = vector3(1453.65, -2641.56, 45.0),    taken = false },
         },
         pickingData = {
-            targetLabel = 'Pick Coca Leafs',
-            targetIcon = 'marijuana',
-            progressLabel = 'Picking Coca Leafs',
-            progressTime = 5000,
-            progressAnim = {dict = 'mp_arresting', clip = 'a_uncuff', flags = 17},
-            progressDisable = {move = true, combat = true, car = true}
+            time = 5000,
+            anim = { dict = 'mp_arresting', clip = 'a_uncuff', flag = 49 },
+            disable = { move = true, combat = true, vehicle = true },
         },
         plantTbl = {},
         steps = {
-            enterLab = {
-                coords = vector3(743.89, -1905.91, 29.41),
-                targetLabel = 'Enter Lab',
-                targetIcon = 'marijuana',
-            },
-            exitLab = {
-                coords = vector3(1088.81, -3187.57, -38.99),
-                targetLabel = 'Exit Lab',
-                targetIcon = 'marijuana',
-            },
+            enterLab  = vector3(743.89, -1905.91, 29.41),
+            exitLab = vector3(1088.81, -3187.57, -38.99),
             powdering = {
                 coords = vector3(1086.38, -3195.24, -39.5),
-                targetLabel = 'Break Down Coca',
-                targetIcon = 'marijuana',
-                progressLabel = 'Breaking Down Coca Leaves',
+                progress = {
+                    time = 5000,
+                    disable = { move = true, combat = true, vehicle = true },
+                    anim = { dict = 'mp_arresting', clip = 'a_uncuff', flag = 49 },
+                },
                 recipe = {
                     receive = {item = 'coke_powder', amount = 1 },
                     give = {
@@ -55,12 +46,9 @@ Config = {
                 }
             },
             cutting = {
-                coords = vector3(1095.61, -3195.62, -39.13),
-                offset = vec3(-1.782227, 0.445068, -0.502701),
-                rotation = vector3(0,0,0),
-                targetLabel = 'Cut Cocaine',
-                targetIcon = 'marijuana',
-                progressLabel = 'Cutting Cocaine',
+                coords = vector3(1095.61, -3195.62, -39.13),        -- do not touch | like seriously no touch
+                offset = vec3(-1.782227, 0.445068, -0.502701),      -- do not touch | like seriously no touch
+                rotation = vector3(0,0,0),                          -- do not touch | like seriously no touch
                 recipe = {
                     receive = {item = 'cut_coke', amount = 1 },
                     give = {
@@ -70,12 +58,9 @@ Config = {
                 }
             },
             bagging = {
-                coords = vector3(1093.16, -3195.78, -39.19),
-                offset = vec3(4.515137, 2.542969, -0.814194),
-                rotation = vector3(0,0,180.0),
-                targetLabel = 'Bag Cocaine',
-                targetIcon = 'marijuana',
-                progressLabel = 'Bagging Cocaine',
+                coords = vector3(1093.16, -3195.78, -39.19),     -- do not touch | like seriously no touch
+                offset = vec3(4.515137, 2.542969, -0.814194),    -- do not touch | like seriously no touch
+                rotation = vector3(0,0,180.0),                   -- do not touch | like seriously no touch
                 recipe = {
                     receive = {item = 'cocaine_baggy', amount = 1 },
                     give = {
@@ -107,18 +92,10 @@ Config = {
             { coords = vector3(-2250.96, -111.22, 97.50),taken = false},
             { coords = vector3(465.95, -1021.32, 31.78), taken = false},
         },
-        pickingData = {
-            targetLabel = 'Pick Poppies',
-            targetIcon = 'heroin',
-            progressLabel = 'Picking Poppies',
-        },
         plantTbl = {},
         steps = {
             drying = {
                 coords = vector3(1389.8, 3608.72, 38.94),
-                targetLabel = 'Dry Poppies',
-                targetIcon = 'heroin',
-                progressLabel = 'Drying Poppies',
                 recipe = {
                     receive = {item = 'heroin_powder', amount = 1},
                     give = {
@@ -128,9 +105,6 @@ Config = {
             },
             vials = {
                 coords = vector3(1391.86, 3605.92, 38.94),
-                targetLabel = 'Make Heroin Vials',
-                targetIcon = 'heroin',
-                progressLabel = 'Making Heroin Vials',
                 recipe = {
                     receive = {item = 'heroin_vial', amount = 1},
                     give = {
@@ -142,9 +116,6 @@ Config = {
             },
             syringe = {
                 coords = vector3(1389.68, 3603.54, 38.92),
-                targetLabel = 'Make Heroin Syringe',
-                targetIcon = 'heroin',
-                progressLabel = 'Making Heroin Syringe',
                 recipe = {
                     receive = {item = 'heroin_syringe', amount = 1},
                     give = {
@@ -173,28 +144,12 @@ Config = {
             thc = { min = 10, max = 30 },
             cbd = { min = 5, max = 20 }
         },
-        pickingData = {
-            targetLabel = 'Pick Weed',
-            targetIcon = 'weed',
-            progressLabel = 'Picking Weed',
-        },
         plantTbl = {},
         steps = {
-            enterLab = {
-                coords = vector3(861.59, 2174.34, 52.28),
-                targetLabel = 'Enter Lab',
-                targetIcon = 'marijuana',
-            },
-            exitLab = {
-                coords = vector3(1066.4, -3183.36, -39.16),
-                targetLabel = 'Exit Lab',
-                targetIcon = 'marijuana',
-            },
+            enterLab =  vector3(861.59, 2174.34, 52.28),
+            exitLab = vector3(1066.4, -3183.36, -39.16),
             drying = {
                 coords = vector3(1035.85, -3203.81, -38.17),
-                targetLabel = 'Dry Weed',
-                targetIcon = 'weed',
-                progressLabel = 'Drying Weed',
                 recipe = {
                     receive = {item = 'dried_cola', amount = 1},
                     give = {
@@ -204,28 +159,20 @@ Config = {
             },
             breakNugs = {
                 coords = vector3(1037.52, -3205.36, -38.17),
-                targetLabel = 'Break Nugs',
-                targetIcon = 'weed',
-                progressLabel = 'Breaking Nugs',
             },
             bagWeed = {
                 coords = vector3(1033.93, -3203.72, -38.18),
-                targetLabel = 'Bag Weed',
-                targetIcon = 'weed',
-                progressLabel = 'Bagging Weed',
             }
         }
     }
 }
+
 DrugConfig = {
     Crack = {
         steps = {
             cook = {
                 prop = 'v_ret_ml_tablea',
                 coords = vector4(30.02, 3664.79, 40.20, 241.54),
-                targetLabel = 'Cook Crack',
-                targetIcon = 'fa-solid fa-tempature-high',
-                progressLabel = 'Cooking Crack',
                 recipe = {
                     receive = {item = 'crack_rock', amount = 1},
                     give = {
@@ -237,9 +184,6 @@ DrugConfig = {
             bagging = {
                 prop = 'v_ret_ml_tablec',
                 coords = vector4(24.8, 3662.6, 39.8, 241.27),
-                targetLabel = 'Bag Crack',
-                targetIcon = 'crack',
-                progressLabel = 'Bagging Crack',
                 recipe = {
                     receive = {item = 'crack_bag', amount = 1},
                     give = {
@@ -267,25 +211,15 @@ DrugConfig = {
             Tele = {
                 outside = vector3(981.07, -1805.58, 35.80),
                 inside = vector3(996.91, -3200.83, -36.39),
-                targetLabelIn = 'Exit Lab',
-                targetLabelOut = 'Enter Lab',
-                targetIconIn = 'fa-solid fa-arrow-right',
-                targetIconOut = 'fa-solid fa-arrow-left',
             },
             Pour = {
-                coords = vector3(1006.09, -3200.59, -38.52),
-                offset = vec3(4.79, 2.13, -0.41),
-                rotation = vec3(0.0, 0.0, 0.0),
-                targetLabel = 'Pour Chemicals',
-                targetIcon = 'fa-solid fa-flask',
-                trayLabel = 'Grab Tray',
-                trayIcon = 'fa-solid fa-hand-paper',
+                coords = vector3(1006.09, -3200.59, -38.52),    
+                offset = vec3(4.79, 2.13, -0.41),               
+                rotation = vec3(0.0, 0.0, 0.0),                 
             },
             Heat = {
                 coords = vector3(1007.89, -3201.17, -38.99),
                 explosion = true,
-                targetLabel = 'Heat Chemicals',
-                targetIcon = 'fa-solid fa-fire',
             },
             Smash = {
                 coords = vector3(1012.04, -3194.96, -38.99),
@@ -293,16 +227,12 @@ DrugConfig = {
                 size = vector3(1.0, 1.0, 2.0),
                 offset = vec3(-3.143311, -1.666748, -1.010128),
                 rotation = vector3(0,0,0.0),
-                targetLabel = 'Smash Meth',
-                targetIcon = 'fa-solid fa-hammer',
             },
             Bag = {
                 coords =  vector3(1014.25, -3194.93, -38.99),
                 size = vector3(1.0, 1.0, 2.0),
                 offset = vec3(-4.9, -1.70, -1.01),
                 rotation = vector3(0,0,0.0),
-                targetLabel = 'Bag Meth',
-                targetIcon = 'fa-solid fa-bag-shopping',
             }
         }
     }
@@ -335,14 +265,11 @@ CornerSelling = {
 }
 
 DefaultProgress = {
-    progressTime = 5000,
-    progressAnim = {dict = 'mp_arresting', clip = 'a_uncuff', flags = 17},
-    progressDisable = {move = true, combat = true, car = true}
+    time = 5000,
+    anim = {dict = 'mp_arresting', clip = 'a_uncuff', flags = 17},
+    disable = {move = true, combat = true, car = true}
 }
 
--- DrugConfig and DefaultProgress are public legacy configuration tables.
--- Keep their aliases intact while registering their authored values with the
--- resource-owned qblib configuration bridge.
 Config.DrugConfig = DrugConfig
 Config.DefaultProgress = DefaultProgress
 Config = QB.config.adopt(Config)

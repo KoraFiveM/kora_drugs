@@ -300,8 +300,8 @@ end
 local function attachBucketTarget(bucket)
 	exports.qbtarget:addEntity(bucket, {
 		{
-			label       = step.Bag.targetLabel,
-			icon        = step.Bag.targetIcon,
+			label       = QB.lang('meth.bag.target'),
+			icon        = QB.lang('meth.bag.icon'),
 			canInteract = function() return atStage(stage.smashed) end,
 			onSelect    = function() runStep(stage.smashed, bagUp) end,
 		},
@@ -333,15 +333,15 @@ end
 if step.Tele then
 	addStepZone({ coords = step.Tele.outside, size = step.Tele.size, heading = step.Tele.heading }, {
 		{
-			label    = step.Tele.targetLabelOut,
-			icon     = step.Tele.targetIconOut,
+			label    = QB.lang('meth.enter.target'),
+			icon     = QB.lang('meth.enter.icon'),
 			onSelect = function() QB.visuals.fade(step.Tele.inside) end,
 		},
 	})
 	addStepZone({ coords = step.Tele.inside, size = step.Tele.size, heading = step.Tele.heading }, {
 		{
-			label    = step.Tele.targetLabelIn,
-			icon     = step.Tele.targetIconIn,
+			label    = QB.lang('meth.exit.target'),
+			icon     = QB.lang('meth.exit.icon'),
 			onSelect = function() QB.visuals.fade(step.Tele.outside) end,
 		},
 	})
@@ -350,8 +350,8 @@ end
 if step.Pour then
 	addStepZone(step.Pour, {
 		{
-			label       = step.Pour.targetLabel,
-			icon        = step.Pour.targetIcon,
+			label       = QB.lang('meth.pour.target'),
+			icon        = QB.lang('meth.pour.icon'),
 			canInteract = function() return atStage(stage.idle) end,
 			onSelect    = function()
 				runStep(stage.idle, function()
@@ -360,8 +360,8 @@ if step.Pour then
 			end,
 		},
 		{
-			label       = step.Pour.trayLabel,
-			icon        = step.Pour.trayIcon,
+			label       = QB.lang('meth.tray.target'),
+			icon        = QB.lang('meth.tray.icon'),
 			canInteract = function() return atStage(stage.heated) end,
 			onSelect    = function() runStep(stage.heated, pickUpTray) end,
 		},
@@ -371,8 +371,8 @@ end
 if step.Heat then
 	addStepZone(step.Heat, {
 		{
-			label       = step.Heat.targetLabel,
-			icon        = step.Heat.targetIcon,
+			label       = QB.lang('meth.heat.target'),
+			icon        = QB.lang('meth.heat.icon'),
 			canInteract = function() return atStage(stage.poured) end,
 			onSelect    = function()
 				runStep(stage.poured, function() return runDials(step.Heat.coords) end)
@@ -384,8 +384,8 @@ end
 if step.Smash then
 	addStepZone(step.Smash, {
 		{
-			label       = step.Smash.targetLabel,
-			icon        = step.Smash.targetIcon,
+			label       = QB.lang('meth.smash.target'),
+			icon        = QB.lang('meth.smash.icon'),
 			canInteract = function() return atStage(stage.trayed) end,
 			onSelect    = function()
 				runStep(stage.trayed, function()
@@ -403,7 +403,7 @@ AddEventHandler('onResourceStop', function(resource)
 end)
 
 CreateThread(function()
-    if GetResourceState('bob74_ipl') ~= 'missing' then return end
+    if GetResourceState('bob74_ipl') == 'missing' then return end
     repeat Wait(100) until GetResourceState('bob74_ipl') == 'started'
 	local lab = exports['bob74_ipl']:GetBikerMethLabObject()
 	lab.Style.Set(lab.Style.upgrade)

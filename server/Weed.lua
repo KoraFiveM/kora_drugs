@@ -163,11 +163,3 @@ exports['qb-core']:CreateUseableItem('rolling_paper', function(source, item)
         Inventory:AddItem(src, jointItem[hasItem.name], 1, nil, { cbd = hasItem.info.cbd, thc = hasItem.info.thc })
     end
 end)
-
---for k, itemName in pairs(jointItem) do
---    if itemName ~= 'blue_dream_joint' then
---        exports.qbconsumables:addConsumable(itemName, {
---            type = 'smoke'
---        })
---    end
---end

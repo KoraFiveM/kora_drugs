@@ -1,14 +1,25 @@
 
 local Busy = false
+
+local function returnDisableAnim(name)
+    local tbl = {
+        anim = Config[name] and Config[name].pickingData and Config[name].pickingData.anim or DefaultProgress.anim,
+        disable = Config[name] and Config[name].pickingData and Config[name].pickingData.disable or DefaultProgress.disable,
+        time = Config[name] and Config[name].pickingData and Config[name].pickingData.time or DefaultProgress.time
+    }
+    return tbl
+end
+
 local function pickDrugs(name, loc)
     Busy = true
+    local tbl = returnDisableAnim(name)
     if QB.progressbar.start({
-        label = Config[name].pickingData.progressLabel or "Picking",
-        duration = Config[name].pickingData.progressTime or 5000,
+        label = QB.lang(name..'.pick.progress') or "Picking",
+        duration = tbl.time,
         useWhileDead = false,
         canCancel = true,
-        disable = Config[name].pickingData.progressDisable or {move = true, combat = true, car = true},
-        anim = Config[name].pickingData.progressAnim or {dict = 'mp_arresting', clip = 'a_uncuff', flags = 17}
+        disable = tbl.disable,
+        anim = tbl.anim
     }) then
         TriggerServerEvent('qb_drugs:server:pick'..name, loc)
     end
@@ -19,8 +30,8 @@ local function spawnProps(name, model, coords, id)
     local obj = QB.entities.create(model, coords, { freeze = true, invincible = true})
     exports.qbtarget:addEntity(obj, {
         {
-            icon = Config[name].pickingData.targetIcon or 'cocaine',
-            label = Config[name].pickingData.targetLabel or 'Pick Drugs',
+            icon = QB.lang(name..'.pick.icon') or 'coca-leaf',
+            label = QB.lang(name..'.pick.target') or 'Pick Drugs',
             onSelect = function()
                 pickDrugs(name, id)
             end,

@@ -9,29 +9,6 @@ if not steps then
     return
 end
 
-
-if steps.drying then
-    exports.qbtarget:addBoxZone({
-        coords = steps.drying.coords,
-        size = vector3(2,2,2),
-        rotation = steps.drying.rotation,
-        options = returnBasicOption(steps.drying, "qb-drugs:server:HeroinDrying")
-    })
-end
-if steps.vials then
-    exports.qbtarget:addBoxZone({
-        coords = steps.vials.coords,
-        size = vector3(2,2,2),
-        rotation = steps.vials.rotation,
-        options = returnBasicOption(steps.vials, "qb-drugs:server:HeroinVials")
-    })
-end
-
-if steps.syringe then
-    exports.qbtarget:addBoxZone({
-        coords = steps.syringe.coords,
-        size = vector3(2,2,2),
-        rotation = steps.syringe.rotation,
-        options = returnBasicOption(steps.syringe, "qb-drugs:server:HeroinSyringe")
-    })
-end
+basicTarget(steps.drying.coords,   steps.drying.rotation,    steps.drying,   "qb-drugs:server:HeroinDrying", 'Heroin.drying')
+basicTarget(steps.vials.coords,    steps.vials.rotation,     steps.vials,    "qb-drugs:server:HeroinVials",  'Heroin.vials')
+basicTarget(steps.syringe.coords,  steps.syringe.rotation,   steps.syringe,  "qb-drugs:server:HeroinSyringe",'Heroin.syringe')

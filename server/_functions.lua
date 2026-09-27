@@ -7,7 +7,7 @@ function hasItems(src, itemList)
         if exports['qb-inventory']:HasItem(src, item.item, item.amount) then
             has = has + 1
         else
-            table.insert(missing, {title = 'qb-drugs', message = 'You Need ' .. item.amount .. ' ' .. item.item, type = 'error'})
+            table.insert(missing, {title = 'qb-drugs', message = QB.lang('Functions.no_items', item.amount, item.item), type = 'error'})
         end
     end
     if has ~= need then
@@ -46,18 +46,18 @@ function timeout(src, duration)
     end)
 end
 
-function runEvent(src, step, notify, meta)
+function runEvent(src, step, meta, event)
     if timeouts[src] then
+        QB.print.warn(QB.lang('Functions.timeout', src, event or 'unknown'))
         return
     end
     if not QB.distance.player(src, step.coords, 3) then
+        QB.print.warn(QB.lang('Functions.distance', src, event or 'unknown'))
         return
     end
     timeout(src, step.progressTime)
     if craft(src, step.recipe, meta) then
-        if step.successNotify then
-            QB.notify.send(src, step.successNotify)
-        end
+        return true
     end
 end
 

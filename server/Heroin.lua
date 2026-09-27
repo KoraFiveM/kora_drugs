@@ -1,9 +1,9 @@
 local Step = Config.Heroin.steps
 
 local events = {
-    {name = "qb-drugs:server:HeroinDrying",  action = function(src)   runEvent(src, Step.drying) end },
-    {name = "qb-drugs:server:HeroinVials",   action = function(src)   runEvent(src, Step.vials) end },
-    {name = "qb-drugs:server:HeroinSyringe", action = function(src)   runEvent(src, Step.syringe) end },
+    {name = "qb-drugs:server:HeroinDrying",  action = function(src)   runEvent(src, Step.drying, nil, 'qb-drugs:server:HeroinDrying') end },
+    {name = "qb-drugs:server:HeroinVials",   action = function(src)   runEvent(src, Step.vials, nil, 'qb-drugs:server:HeroinVials') end },
+    {name = "qb-drugs:server:HeroinSyringe", action = function(src)   runEvent(src, Step.syringe, nil, 'qb-drugs:server:HeroinSyringe') end },
 }
 
 for _, event in pairs(events) do
@@ -12,7 +12,3 @@ for _, event in pairs(events) do
         event.action(src)
     end)
 end
-
---exports.qbconsumables:addConsumable(Step.syringe.recipe.receive.item, {
---    type = 'inject'
---})
