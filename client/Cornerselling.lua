@@ -1,7 +1,6 @@
 local isSelling = false
 local previous = {}
 local buyer = nil
-local Items = exports['qb-core']:GetShared('Items')
 local drugDeal = nil
 local isOfferOpen = false
 local cornerPrompt

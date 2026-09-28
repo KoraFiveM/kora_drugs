@@ -1,8 +1,9 @@
 local notifyIngridents = {}
-local items = exports['qb-core']:GetShared('Items')
 local Busy = false
+
 local function getItemLabel(item)
-    return items[item] and items[item].label or item
+    local itemData = exports.qbcore:getShared('items', item)
+    return itemData and itemData.label or item
 end
 
 function itemCheck(recipe)

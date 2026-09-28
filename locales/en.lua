@@ -2,7 +2,7 @@ return {
     Functions = {
         no_items = 'You Need %s  %s To Do This !',
         timeout = 'Player: %s is on timeout and fired %s event',
-        distance = 'Player: %s is too far from the required location for event %s',
+        distance = 'Player: %s is too far from the required location for event ',
     },
     Cocaine = {
         pick = {
