@@ -19,16 +19,16 @@ return {
             icon = 'Door',
         },
         powdering = {
-            target = 'Phá sản Coca-Cola',
+            target = 'Nghiền lá coca',
             icon = 'coca-leaf',
             progress = 'Đập vỡ lon Coca',
         },
         cut = {
-            target = 'Name',
+            target = 'Cắt cocaine',
             icon = 'marijuana',
         },
         bag = {
-            target = 'Name',
+            target = 'Đóng gói cocaine',
             icon = 'marijuana',
         },
     },
@@ -67,30 +67,30 @@ return {
         dry = {
             target = 'Cỏ khô',
             icon = 'weed',
-            progress = 'Cỏ khô',
+            progress = 'Đang đóng gói cần sa',
         },
         breakNugs = {
-            target = 'Bỏ thói nghiện ngập',
+            target = 'Tán nhỏ cần sa',
             icon = 'weed',
-            progress = 'Bỏ thói nghiện ngập',
+            progress = 'Tán nhỏ cần sa',
         },
         bag = {
-            target = 'Name',
+            target = 'Đóng gói cần sa',
             icon = 'weed',
-            progress = 'Cỏ khô',
+            progress = 'Đang đóng gói cần sa',
         },
-        rolling = 'Comment',
+        rolling = 'Cuốn một điếu cần sa',
     },
     crack = {
         cook = {
-            target = 'Name',
+            target = 'Nấu crack',
             icon = 'crack',
-            progress = 'Bánh quy',
+            progress = 'Đang nấu crack',
         },
         bagging = {
-            target = 'Vết nứt túi',
+            target = 'Đóng gói crack',
             icon = 'crack',
-            progress = 'Vết nứt gãy',
+            progress = 'Đang đóng gói crack',
         },
     },
     meth = {
@@ -103,23 +103,23 @@ return {
             icon = 'Door',
         },
         pour = {
-            target = 'Name',
+            target = 'Đổ hóa chất',
             icon = 'fa-solid fa-flask',
         },
         tray = {
-            target = 'Chụp khay',
+            target = 'Lấy khay',
             icon = 'fa-solid fa-hand-paper',
         },
         heat = {
-            target = 'Hóa chất nóng',
+            target = 'Đun nóng hóa chất',
             icon = 'fa-solid fa-fire',
         },
         smash = {
-            target = 'Name',
+            target = 'Đập nhỏ ma túy đá',
             icon = 'fa-solid fa-hammer',
         },
         bag = {
-            target = 'Name',
+            target = 'Đóng gói ma túy đá',
             icon = 'fa-solid fa-bag-shopping',
         },
     },
@@ -132,7 +132,7 @@ return {
         },
         sellAlert = {
             title = 'Xác nhận bán hàng',
-            message = 'Sell %s of %s for $%.2f? ($%.2f each)',
+            message = 'Bán %s %s với giá $%.2f? ($%.2f mỗi món)',
             confirmLabel = 'Bán',
             cancelLabel = 'Xóa',
         },

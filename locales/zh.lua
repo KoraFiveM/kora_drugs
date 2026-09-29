@@ -1,13 +1,13 @@
 return {
     Functions = {
-        no_items = 'You Need %s  %s To Do This !',
-        timeout = 'Player: %s is on timeout and fired %s event',
-        distance = 'Player: %s is too far from the required location for event %s',
+        no_items = '你需要%s个%s才能进行此操作！',
+        timeout = '玩家：%s处于超时状态，却触发了%s事件',
+        distance = '玩家：%s距离%s事件所需的位置太远',
     },
     Cocaine = {
         pick = {
             progress = '摘古柯叶',
-            target = '选可口叶',
+            target = '采摘古柯叶',
             icon = 'coca-leaf',
         },
         enter = {
@@ -19,7 +19,7 @@ return {
             icon = 'Door',
         },
         powdering = {
-            target = '打破可口可乐',
+            target = '处理古柯叶',
             icon = 'coca-leaf',
             progress = '打破古柯叶',
         },
@@ -39,9 +39,9 @@ return {
             icon = 'poppy',
         },
         drying = {
-            target = '干波皮鱼',
+            target = '晾干罂粟',
             icon = 'poppy',
-            progress = '干波皮鱼',
+            progress = '正在晾干罂粟',
         },
         vials = {
             target = '填充海洛因数量',
@@ -49,9 +49,9 @@ return {
             progress = '填充海洛因',
         },
         syringe = {
-            target = '制造海洛因锡林',
+            target = '制作海洛因注射器',
             icon = 'poppy',
-            progress = '制造海洛因锡林',
+            progress = '正在制作海洛因注射器',
         },
     },
     Weed = {
@@ -132,7 +132,7 @@ return {
         },
         sellAlert = {
             title = '确认销售',
-            message = 'Sell %s of %s for $%.2f? ($%.2f each)',
+            message = '出售%s个%s，总价$%.2f（每个$%.2f）。确认出售吗？',
             confirmLabel = '卖',
             cancelLabel = '递减',
         },

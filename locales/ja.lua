@@ -132,7 +132,7 @@ return {
         },
         sellAlert = {
             title = '販売の確認',
-            message = 'Sell %s of %s for $%.2f? ($%.2f each)',
+            message = '%s個の%sを合計$%.2f（1個あたり$%.2f）で販売しますか？',
             confirmLabel = '販売代理店',
             cancelLabel = 'スケジュール',
         },

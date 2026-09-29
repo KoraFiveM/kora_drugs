@@ -132,7 +132,7 @@ return {
         },
         sellAlert = {
             title = '구매하기',
-            message = '$%.2f용 %s 의 %s 를 판매? ($%.2f 각)',
+            message = '%s개 %s를 총 $%.2f(개당 $%.2f)에 판매하시겠습니까?',
             confirmLabel = '구매하기',
             cancelLabel = '12 월',
         },

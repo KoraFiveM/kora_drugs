@@ -7,7 +7,7 @@ return {
     Cocaine = {
         pick = {
             progress = 'Coca Leaves',
-            target = 'Coca-Cola',
+            target = 'Koka yaprağı topla',
             icon = 'coca-leaf',
         },
         enter = {
@@ -65,21 +65,21 @@ return {
             icon = 'Door',
         },
         dry = {
-            target = 'Kuru Weed Weed',
+            target = 'Esrarı kurut',
             icon = 'weed',
-            progress = 'Öğüttük',
+            progress = 'Esrar kurutuluyor',
         },
         breakNugs = {
-            target = 'Aşağı Weed',
+            target = 'Esrarı parçala',
             icon = 'weed',
-            progress = 'Bitti',
+            progress = 'Esrar parçalanıyor',
         },
         bag = {
             target = 'Bag Weed',
             icon = 'weed',
             progress = 'Bagging Weed',
         },
-        rolling = 'Demiryolu A Joint',
+        rolling = 'Esrar sarılıyor',
     },
     crack = {
         cook = {
@@ -111,7 +111,7 @@ return {
             icon = 'fa-solid fa-hand-paper',
         },
         heat = {
-            target = 'Kimyasal Kimyasal Kimyasal',
+            target = 'Kimyasalları ısıt',
             icon = 'fa-solid fa-fire',
         },
         smash = {
@@ -127,12 +127,12 @@ return {
         looking = 'Bir Alıcıya bakmak...',
         buyerFound = 'Alıcı bulundu! Size Geliyorlar',
         sell = {
-            target = 'Satın almak için satmak',
+            target = 'Alıcıya sat',
             icon = 'fa-solid fa-hand-holding',
         },
         sellAlert = {
             title = 'Onaylandı',
-            message = 'Sell %s of %s for $%.2f? ($%.2f each)',
+            message = '%s adet %s ürününü toplam $%.2f (adet başına $%.2f) karşılığında satmak istiyor musunuz?',
             confirmLabel = 'Sat Satış Sat',
             cancelLabel = 'Decline',
         },

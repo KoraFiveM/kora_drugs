@@ -6,8 +6,8 @@ return {
     },
     Cocaine = {
         pick = {
-            progress = 'اختيار إجازات الكوكا',
-            target = 'Be Coca Leaf',
+            progress = 'جمع أوراق الكوكا',
+            target = 'اجمع أوراق الكوكا',
             icon = 'coca-leaf',
         },
         enter = {
@@ -21,27 +21,27 @@ return {
         powdering = {
             target = 'كسر الكوكا',
             icon = 'coca-leaf',
-            progress = 'كسر إجازات الكوكا',
+            progress = 'طحن أوراق الكوكا',
         },
         cut = {
-            target = 'الكوكايين',
+            target = 'قطّع الكوكايين',
             icon = 'marijuana',
         },
         bag = {
-            target = 'باغ كوكايين',
+            target = 'عبّئ الكوكايين في أكياس',
             icon = 'marijuana',
         },
     },
     Heroin = {
         pick = {
-            progress = 'اختر البابا',
-            target = 'بيك بوبي',
+            progress = 'جمع الخشخاش',
+            target = 'اجمع الخشخاش',
             icon = 'poppy',
         },
         drying = {
-            target = 'جافة',
+            target = 'جفّف الخشخاش',
             icon = 'poppy',
-            progress = 'جافة',
+            progress = 'جارٍ تجفيف الخشخاش',
         },
         vials = {
             target = 'Fill Heroin Vials',
@@ -79,7 +79,7 @@ return {
             icon = 'weed',
             progress = 'بومج ويد',
         },
-        rolling = 'تداول مشترك',
+        rolling = 'لفّ سيجارة حشيش',
     },
     crack = {
         cook = {
@@ -132,7 +132,7 @@ return {
         },
         sellAlert = {
             title = 'شركة البيع',
-            message = 'سيل %s of %s for $%.2f? (%.2f each)',
+            message = 'هل تريد بيع %s من %s مقابل $%.2f؟ (بسعر $%.2f للقطعة)؟',
             confirmLabel = 'Sell',
             cancelLabel = 'Decline',
         },
