@@ -16,8 +16,17 @@ local weedItems = {
 }
 local hasSale = {}
 local inProgress = {}
+local function percentNumber(value)
+    if type(value) == 'string' then
+        value = value:gsub('%%$', '')
+    end
+    return tonumber(value)
+end
+
 local function calculateWeedPrice(item, thc, cbd)
     local basePrice = CornerSelling.pricing[item]
+    thc, cbd = percentNumber(thc), percentNumber(cbd)
+    if not thc or not cbd then return basePrice end
 
     local thcQuality = (thc - THC.min) / (THC.max - THC.min)
     local cbdQuality = (cbd - CBD.min) / (CBD.max - CBD.min)
