@@ -1,16 +1,12 @@
 
 function hasItems(src, itemList)
-    local need, has = 0, 0
     local missing = {}
     for _, item in pairs(itemList) do
-        need = need + 1
-        if exports['qb-inventory']:HasItem(src, item.item, item.amount) then
-            has = has + 1
-        else
-            table.insert(missing, {title = 'qb-drugs', message = QB.lang('Functions.no_items', item.amount, item.item), type = 'error'})
+        if not exports['qb-inventory']:HasItem(src, item.item, item.amount) then
+            missing[#missing + 1] = {title = 'qb-drugs', message = QB.lang('Functions.no_items', item.amount, item.item), type = 'error'}
         end
     end
-    if has ~= need then
+    if #missing > 0 then
         for _, notify in pairs(missing) do
             QB.notify.send(src, notify)
         end
@@ -40,8 +36,7 @@ function timeout(src, duration)
         return
     end
     timeouts[src] = true
-    CreateThread(function()
-        Wait(duration)
+    SetTimeout(duration, function()
         timeouts[src] = nil
     end)
 end
@@ -56,8 +51,7 @@ function runEvent(src, step, meta, event)
         return
     end
     timeout(src, step.progressTime)
-    if craft(src, step.recipe, meta) then
-        return true
-    end
+    if not craft(src, step.recipe, meta) then return end
+    return true
 end
 

@@ -1,4 +1,3 @@
-local notifyIngridents = {}
 local Busy = false
 
 local function getItemLabel(item)
@@ -7,20 +6,16 @@ local function getItemLabel(item)
 end
 
 function itemCheck(recipe)
-    local need, has = 0, 0
-    for k, v in pairs(recipe.give) do
-        if exports['qb-inventory']:HasItem(v.item, v.amount) then
-            has = has + 1
-        else
-            table.insert(notifyIngridents, {title = 'qb-drugs', message = 'You Need ' .. v.amount .. ' ' .. getItemLabel(v.item), type = 'error'})
+    local missing = {}
+    for _, v in pairs(recipe.give) do
+        if not exports['qb-inventory']:HasItem(v.item, v.amount) then
+            missing[#missing + 1] = {title = 'qb-drugs', message = 'You Need ' .. v.amount .. ' ' .. getItemLabel(v.item), type = 'error'}
         end
-        need = need + 1
     end
-    if has ~= need then
-        for _, notify in pairs(notifyIngridents) do
+    if #missing > 0 then
+        for _, notify in pairs(missing) do
             QB.notify.send(notify)
         end
-        notifyIngridents = {}
         return
     end
     return true
