@@ -47,7 +47,7 @@ local function getSellableItem(src)
     for k, v in pairs (CornerSelling.pricing) do
         local has = exports['qb-inventory']:HasItem(src, k)
         if has then
-            item = exports['qb-core']:GetPlayer(src).Functions.GetItemByName(k)
+            item = exports.qbcore:getItemByName(src, k)
             break
         end
     end
@@ -89,7 +89,7 @@ RegisterNetEvent('qbdrugs:sellToBuyer', function(netId)
     inProgress[src] = nil
     if exports['qb-inventory']:RemoveItem(src, sellData.item, sellData.amount) then
         local total = sellData.total
-        exports['qb-core']:GetPlayer(src).Functions.AddMoney('cash', total)
+        exports.qbcore:addMoney(src, 'cash', total)
         hasSale[src] = hasSale[src] or {}
         hasSale[src][buyer] = true
     end

@@ -147,7 +147,7 @@ local jointItem = {
     ak47_weed = 'ak47_joint',
     amnesia_weed = 'amnesia_joint',
 }
-exports['qb-core']:CreateUseableItem('rolling_paper', function(source, item)
+exports.qbcore:createUseable('rolling_paper', function(source, item)
     local src = source
     local hasItem = nil
     for i = 1, #allItems do

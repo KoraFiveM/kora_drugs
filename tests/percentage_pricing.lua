@@ -33,9 +33,9 @@ end
 local net, callbacks, useables, timers = {}, {}, {}, {}
 exports = {
     ['qb-inventory'] = inventory,
-    ['qb-core'] = {
-        GetPlayer = function(_, src) return { Functions = { GetItemByName = function(name) return inventory:GetItemByName(src, name) end } } end,
-        CreateUseableItem = function(_, name, fn) useables[name] = fn end,
+    qbcore = {
+        getItemByName = function(_, src, name) return inventory:GetItemByName(src, name) end,
+        createUseable = function(_, name, fn) useables[name] = fn end,
     },
 }
 QB = {
