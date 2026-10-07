@@ -1,5 +1,7 @@
-local config = DrugConfig.Meth
+local config = Config.Meth
 local cooking = {}
+
+RegisterLabTeleport('meth', 'Meth', 'tele')
 
 local minStageGap = {
 	toHeat  = 5,
@@ -106,7 +108,7 @@ RegisterNetEvent('qb-drugs:server:getMeth', function()
 	if not elapsedSince(session, 'smashedAt', minStageGap.toBag) then return end
 	if not withinRange(src, config.Steps.Bag.coords) then return end
     if os.time() < session.minTime then return end
-	craft(src, DrugConfig.Meth.bag_recipe)
+	craft(src, Config.Meth.bag_recipe)
 	resetCook(src)
 end)
 

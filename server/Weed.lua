@@ -73,27 +73,38 @@ local function checkDistance(src, coords, distance)
     return QB.distance.player(src, coords, distance)
 end
 
-local function verify(src, coords, distance)
+-- The client sends the index of the location it used. It is looked up in Drugs.Weed.<step>
+-- so the distance check is against a position the creator actually saved.
+local function spotCoords(step, id)
+    local entry = Drugs.Weed and Drugs.Weed[step]
+    local location = entry and type(id) == 'number' and entry.locations[id]
+    local c = location and location.coords
+    if not c then return nil end
+    return vec3(c.x, c.y, c.z)
+end
+
+local function verify(src, step, id)
+    local coords = spotCoords(step, id)
+    if not coords then
+        return false
+    end
     if onCooldown(src) then
         return false
     end
-    if not checkDistance(src, coords, distance) then
-        return false
-    end
-    return true
+    return checkDistance(src, coords, 5.0)
 end
 
-RegisterNetEvent('qb-drugs:server:dryCola', function()
+RegisterNetEvent('qb-drugs:server:dryCola', function(id)
     local src = source
-    assert(verify(src, Step.drying.coords, 5.0), "Player is not in the correct location or on cooldown") 
+    assert(QB.distance.player(src, Drugs.Weed.drying.locations[id].coords, 5.0), "Player is not in the correct location or on cooldown")
     if craft(src, Step.drying.recipe, getWeedData()) and Step.drying.successNotify then
         QB.notify.send(src, Step.drying.successNotify)
     end
 end)
 
-RegisterNetEvent('qb-drugs:server:breakNugs', function()
+RegisterNetEvent('qb-drugs:server:breakNugs', function(id)
     local src = source
-    assert(verify(src, Step.breakNugs.coords, 5.0), "Player is not in the correct location or on cooldown")
+    assert(QB.distance.player(src, Drugs.Weed.breakNugs.locations[id].coords, 5.0), "Player is not in the correct location or on cooldown")
     local item = Inventory:GetItemByName(src, 'dried_cola')
     if not item then
         return
@@ -111,9 +122,9 @@ RegisterNetEvent('qb-drugs:server:breakNugs', function()
     end
 end)
 
-RegisterNetEvent('qb-drugs:server:bagWeed', function()
+RegisterNetEvent('qb-drugs:server:bagWeed', function(id)
     local src = source
-    assert(verify(src, Step.bagWeed.coords, 5.0), "Player is not in the correct location or on cooldown")
+    assert(QB.distance.player(src, Drugs.Weed.bagWeed.locations[id].coords, 5.0), "Player is not in the correct location or on cooldown")
 
     local hasItem
     for i = 1, #allItems do
@@ -163,3 +174,5 @@ exports.qbcore:createUseable('rolling_paper', function(source, item)
         Inventory:AddItem(src, jointItem[hasItem.name], 1, nil, { cbd = hasItem.info.cbd, thc = hasItem.info.thc })
     end
 end)
+
+RegisterLabTeleport('weed', 'Weed', 'lab')

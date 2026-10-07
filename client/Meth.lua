@@ -1,4 +1,4 @@
-local config = DrugConfig.Meth
+local config = Config.Meth
 local step   = config.Steps
 
 local stage = {
@@ -118,12 +118,27 @@ local function runScene(opts)
 end
 
 local function addStepZone(cfg, options)
-	exports.qbtarget:addBoxZone({
+	return exports.qbtarget:addBoxZone({
 		coords   = cfg.coords,
 		size     = cfg.size or defaultSize,
 		rotation = cfg.heading or defaultHeading,
 		options  = options,
 	})
+end
+
+-- Target text comes from the saved Meth rows (creator); the locale is the fallback.
+local function targetText(entry, labelKey, iconKey, locale)
+	local data = entry and entry.data or {}
+	return data[labelKey] or QB.lang(locale .. '.target'), data[iconKey] or QB.lang(locale .. '.icon')
+end
+
+-- One zone per step, rebuilt only when that step's row changes.
+local zones = {}
+local function stepZone(name, cfg, optionsFn)
+	OnDrugs('Meth', name, function(entry)
+		if zones[name] then pcall(function() exports.qbtarget:removeZone(zones[name]) end) end
+		zones[name] = addStepZone(cfg, optionsFn(entry))
+	end)
 end
 
 
@@ -298,10 +313,11 @@ local function bagUp()
 end
 
 local function attachBucketTarget(bucket)
+	local label, icon = targetText(Drugs.Meth and Drugs.Meth.bag, 'targetLabel', 'targetIcon', 'meth.bag')
 	exports.qbtarget:addEntity(bucket, {
 		{
-			label       = QB.lang('meth.bag.target'),
-			icon        = QB.lang('meth.bag.icon'),
+			label       = label,
+			icon        = icon,
 			canInteract = function() return atStage(stage.smashed) end,
 			onSelect    = function() runStep(stage.smashed, bagUp) end,
 		},
@@ -330,70 +346,66 @@ end
 
 
 
-if step.Tele then
-	addStepZone({ coords = step.Tele.outside, size = step.Tele.size, heading = step.Tele.heading }, {
-		{
-			label    = QB.lang('meth.enter.target'),
-			icon     = QB.lang('meth.enter.icon'),
-			onSelect = function() QB.visuals.fade(step.Tele.inside) end,
-		},
-	})
-	addStepZone({ coords = step.Tele.inside, size = step.Tele.size, heading = step.Tele.heading }, {
-		{
-			label    = QB.lang('meth.exit.target'),
-			icon     = QB.lang('meth.exit.icon'),
-			onSelect = function() QB.visuals.fade(step.Tele.outside) end,
-		},
-	})
-end
+-- Entrances (many) and the exit (one) come from the 'Meth:tele' row; see LabTeleport.
+OnDrugs('Meth', 'tele', LabTeleport('meth', 'meth'))
 
 if step.Pour then
-	addStepZone(step.Pour, {
-		{
-			label       = QB.lang('meth.pour.target'),
-			icon        = QB.lang('meth.pour.icon'),
-			canInteract = function() return atStage(stage.idle) end,
-			onSelect    = function()
-				runStep(stage.idle, function()
-					return startCook(step.Pour.coords, step.Pour.offset or defaultOffset, step.Pour.rotation or defaultRot)
-				end)
-			end,
-		},
-		{
-			label       = QB.lang('meth.tray.target'),
-			icon        = QB.lang('meth.tray.icon'),
-			canInteract = function() return atStage(stage.heated) end,
-			onSelect    = function() runStep(stage.heated, pickUpTray) end,
-		},
-	})
+	stepZone('pour', step.Pour, function(entry)
+		local pourLabel, pourIcon = targetText(entry, 'targetLabel', 'targetIcon', 'meth.pour')
+		local trayLabel, trayIcon = targetText(entry, 'trayLabel', 'trayIcon', 'meth.tray')
+		return {
+			{
+				label       = pourLabel,
+				icon        = pourIcon,
+				canInteract = function() return atStage(stage.idle) end,
+				onSelect    = function()
+					runStep(stage.idle, function()
+						return startCook(step.Pour.coords, step.Pour.offset or defaultOffset, step.Pour.rotation or defaultRot)
+					end)
+				end,
+			},
+			{
+				label       = trayLabel,
+				icon        = trayIcon,
+				canInteract = function() return atStage(stage.heated) end,
+				onSelect    = function() runStep(stage.heated, pickUpTray) end,
+			},
+		}
+	end)
 end
 
 if step.Heat then
-	addStepZone(step.Heat, {
-		{
-			label       = QB.lang('meth.heat.target'),
-			icon        = QB.lang('meth.heat.icon'),
-			canInteract = function() return atStage(stage.poured) end,
-			onSelect    = function()
-				runStep(stage.poured, function() return runDials(step.Heat.coords) end)
-			end,
-		},
-	})
+	stepZone('heat', step.Heat, function(entry)
+		local label, icon = targetText(entry, 'targetLabel', 'targetIcon', 'meth.heat')
+		return {
+			{
+				label       = label,
+				icon        = icon,
+				canInteract = function() return atStage(stage.poured) end,
+				onSelect    = function()
+					runStep(stage.poured, function() return runDials(step.Heat.coords) end)
+				end,
+			},
+		}
+	end)
 end
 
 if step.Smash then
-	addStepZone(step.Smash, {
-		{
-			label       = QB.lang('meth.smash.target'),
-			icon        = QB.lang('meth.smash.icon'),
-			canInteract = function() return atStage(stage.trayed) end,
-			onSelect    = function()
-				runStep(stage.trayed, function()
-					return smash(step.Smash.coords, step.Smash.offset or defaultOffset, step.Smash.rotation or defaultRot)
-				end)
-			end,
-		},
-	})
+	stepZone('smash', step.Smash, function(entry)
+		local label, icon = targetText(entry, 'targetLabel', 'targetIcon', 'meth.smash')
+		return {
+			{
+				label       = label,
+				icon        = icon,
+				canInteract = function() return atStage(stage.trayed) end,
+				onSelect    = function()
+					runStep(stage.trayed, function()
+						return smash(step.Smash.coords, step.Smash.offset or defaultOffset, step.Smash.rotation or defaultRot)
+					end)
+				end,
+			},
+		}
+	end)
 end
 
 

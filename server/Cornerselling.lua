@@ -1,4 +1,3 @@
-
 local THC, CBD = Config.Weed.percents.thc, Config.Weed.percents.cbd
 local weedItems = {
     skunk_1g = true,
@@ -23,8 +22,17 @@ local function percentNumber(value)
     return tonumber(value)
 end
 
-local function calculateWeedPrice(item, thc, cbd)
-    local basePrice = CornerSelling.pricing[item]
+-- The creator owns these values (Drugs.CornerSelling.settings, see server/events.lua). Until that
+-- row has loaded, the starting values from shared/config.lua are used.
+local function settings()
+    local entry = Drugs and Drugs.CornerSelling and Drugs.CornerSelling.settings
+    local data = entry and entry.data
+    if type(data) == 'table' and type(data.pricing) == 'table' then return data end
+    return CornerSelling
+end
+
+local function calculateWeedPrice(item, thc, cbd, cfg)
+    local basePrice = cfg.pricing[item]
     thc, cbd = percentNumber(thc), percentNumber(cbd)
     if not thc or not cbd then return basePrice end
 
@@ -36,7 +44,7 @@ local function calculateWeedPrice(item, thc, cbd)
 
     local quality = (thcQuality + cbdQuality) / 2
 
-    local priceModifier = (quality * 2 - 1) * 0.20
+    local priceModifier = (quality * 2 - 1) * (tonumber(cfg.weedPercentFlow) or 0.2)
 
     return math.floor(basePrice * (1 + priceModifier))
 end
@@ -44,7 +52,8 @@ end
 local function getSellableItem(src)
     local item = nil
     local sellData = {}
-    for k, v in pairs (CornerSelling.pricing) do
+    local cfg = settings()
+    for k, v in pairs(cfg.pricing) do
         local has = exports['qb-inventory']:HasItem(src, k)
         if has then
             item = exports.qbcore:getItemByName(src, k)
@@ -54,16 +63,16 @@ local function getSellableItem(src)
     if item == nil then
         return false
     end
-    if weedItems[item.name] and CornerSelling.weedPercentAdjustable then
-        sellData.singlePrice = calculateWeedPrice(item.name, item.info.thc, item.info.cbd)
+    if weedItems[item.name] and cfg.weedPercentAdjustable ~= false then
+        sellData.singlePrice = calculateWeedPrice(item.name, item.info.thc, item.info.cbd, cfg)
     else
-        sellData.singlePrice = CornerSelling.pricing[item.name]
+        sellData.singlePrice = cfg.pricing[item.name]
     end
     sellData.item = item.name
     sellData.itemLabel = item.label
-    sellData.amount = math.min(item.amount, 15)
+    sellData.amount = math.min(item.amount, math.max(1, math.floor(tonumber(cfg.maxSell) or 15)))
     sellData.total = sellData.singlePrice * sellData.amount
-    sellData.img = 'nui://qb-inventory/html/images/' .. item.image
+    sellData.img = 'nui://qbinventory/html/' .. item.image
     inProgress[src] = sellData
     return sellData
 end

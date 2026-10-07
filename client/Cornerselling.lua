@@ -41,7 +41,6 @@ end
 
 local function canSell()
     drugDeal = QB.callback.trigger('qbdrugs:getSellableItem')
-    QB.print.debug(drugDeal)
     return drugDeal
 end
 local function findBuyer()

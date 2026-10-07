@@ -1,4 +1,3 @@
-
 function hasItems(src, itemList)
     local missing = {}
     for _, item in pairs(itemList) do
@@ -46,12 +45,49 @@ function runEvent(src, step, meta, event)
         QB.print.warn(QB.lang('Functions.timeout', src, event or 'unknown'))
         return
     end
-    if not QB.distance.player(src, step.coords, 3) then
-        QB.print.warn(QB.lang('Functions.distance', src, event or 'unknown'))
-        return
-    end
-    timeout(src, step.progressTime)
+    timeout(src, 5000)
     if not craft(src, step.recipe, meta) then return end
     return true
 end
 
+function RegisterLabTeleport(name, drug, step)
+    local buckets = {}
+
+    local function lab()
+        return Drugs[drug] and Drugs[drug][step]
+    end
+
+    QB.callback.register(('qbdrugs:%s:Tele'):format(name), function(source, key)
+        local location = lab() and type(key) == 'number' and lab().locations[key]
+        if not location then return false end
+        if not QB.distance.player(source, vec3(location.enter.x, location.enter.y, location.enter.z), 5.0) then
+            return false
+        end
+
+        local old = buckets[source] and buckets[source].old or GetPlayerRoutingBucket(source)
+        buckets[source] = {
+            index = key,
+            old = old,
+            new = old + key,
+            enter = location.enter,
+            exit = location.exit,
+        }
+        SetPlayerRoutingBucket(source, buckets[source].new)
+        return true
+    end)
+
+    QB.callback.register(('qbdrugs:%s:TeleOut'):format(name), function(source)
+        local first = lab() and lab().locations[1]
+        if not buckets[source] then return first and first.enter or false end
+        assert(QB.distance.player(source, vec3(buckets[source].exit.x, buckets[source].exit.y, buckets[source].exit.z), 5.0), "Player is not near the exit")
+
+        SetPlayerRoutingBucket(source, buckets[source].old or 0)
+        local enter = buckets[source].enter or (first and first.enter)
+        buckets[source] = nil
+        return enter
+    end)
+
+    AddEventHandler('playerDropped', function()
+        buckets[source] = nil
+    end)
+end

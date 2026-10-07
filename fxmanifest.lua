@@ -8,6 +8,8 @@ dependency 'qblib'
 dependency 'qbcore'
 shared_scripts {
     '@qblib/init.lua',
+    '@qbcore/init.lua',
+    '@qbsql/init.lua',
     'shared/config.lua',
 }
 
