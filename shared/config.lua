@@ -120,6 +120,9 @@ Config = {
             give = {} -- reason nothing to give back, all ingredients are consumed in cook_recipe to ensure you dont get to the end without having completed the cookbook
         },
         Steps = { -- IF YOU DONT KNOW WHAT YOURE DOING DONT CHANGE THE COORDS FOR ANYTHING BESIDES TELE
+            Tele = {
+                inside = vector3(996.91, -3200.83, -36.39),
+            },
             Pour = {
                 coords = vector3(1006.09, -3200.59, -38.52),    
                 offset = vec3(4.79, 2.13, -0.41),               
@@ -153,3 +156,11 @@ ProgressDisableOptions = {
     { value = 'car', label = 'Vehicle (car)' },
     { value = 'vehicle', label = 'Vehicle (vehicle)' },
 }
+
+DefaultProgress = {
+    time = 5000,
+    anim = {dict = 'mp_arresting', clip = 'a_uncuff', flags = 17},
+    disable = {move = true, combat = true, car = true}
+}
+
+Config = QB.config.adopt(Config)
