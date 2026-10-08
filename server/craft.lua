@@ -13,9 +13,12 @@ end
 RegisterNetEvent('qbdrugs:server:craft', function(drug, step, key)
     local src = source
     local name = tostring(drug) .. ':' .. tostring(step)
-    if not craftSteps[name] then return end
-
     local entry = Drugs[drug] and Drugs[drug][step]
+
+    -- a step from shared/steps.lua, or an event made on the creator's Custom drugs page
+    local custom = entry and type(entry.data) == 'table' and entry.data.custom == true
+    if not (craftSteps[name] or custom) then return end
+
     local location = savedLocation(entry, key)
     local coords = location and location.coords
     if not coords then return end

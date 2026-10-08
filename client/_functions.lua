@@ -71,6 +71,7 @@ end
 Drugs = {}
 
 local drugsLoaded = false
+local watchCustom -- set below: builds the targets of events made on the creator's Custom drugs page
 local drugsListeners = {} -- 'Cocaine:lab' -> { fn, ... }
 
 local function notifyDrugs(key)
@@ -89,7 +90,9 @@ end
 RegisterNetEvent('qbdrugs:client:drugsReload', function(drug, step, entry)
     Drugs[drug] = Drugs[drug] or {}
     Drugs[drug][step] = entry
-    if drugsLoaded and drugsListeners[drug .. ':' .. step] then notifyDrugs(drug .. ':' .. step) end
+    if not drugsLoaded then return end
+    local key = drug .. ':' .. step
+    if drugsListeners[key] then notifyDrugs(key) elseif watchCustom then watchCustom(drug, step) end
 end)
 
 CreateThread(function()
@@ -101,6 +104,11 @@ CreateThread(function()
     Drugs = all
     drugsLoaded = true
     for key in pairs(drugsListeners) do notifyDrugs(key) end
+    if watchCustom then
+        for drug, steps in pairs(Drugs) do
+            for step in pairs(steps) do watchCustom(drug, step) end
+        end
+    end
 end)
 
 function inGang(gang)
@@ -113,7 +121,7 @@ end
 -- single server event. The server looks the recipe up again from drug + step.
 function craftTrigger(drug, step, data, location, key)
     local name = drug .. ':' .. step
-    local info = craftSteps[name]
+    local info = craftSteps[name] or {} -- a custom event has no entry
     local hook = stepHooks[name] or {}
     local recipe = stepRecipe(name, data)
 
@@ -225,7 +233,7 @@ end
 
 local function buildCraft(drug, step)
     local name = drug .. ':' .. step
-    local locale = craftSteps[name].locale
+    local locale = (craftSteps[name] or {}).locale
 
     return function(entry)
         clearCraft(name)
@@ -265,6 +273,17 @@ for name in pairs(craftSteps) do
     if not (Config[drug] and Config[drug].disabled) then
         OnDrugs(drug, step, buildCraft(drug, step))
     end
+end
+
+-- Events made on the creator's Custom drugs page: any row marked data.custom that shared/steps.lua
+-- doesn't list gets the same targets as a built-in step, the first time its row shows up.
+watchCustom = function(drug, step)
+    local name = drug .. ':' .. step
+    if craftSteps[name] or drugsListeners[name] then return end
+
+    local entry = Drugs[drug] and Drugs[drug][step]
+    if not (entry and type(entry.data) == 'table' and entry.data.custom == true) then return end
+    OnDrugs(drug, step, buildCraft(drug, step))
 end
 
 AddEventHandler('onResourceStop', function(res)

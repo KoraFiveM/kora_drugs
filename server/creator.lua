@@ -758,8 +758,10 @@ end
 -- Recipes ---------------------------------------------------------------------------------
 -- One row, 'Recipes:settings', holds every edited recipe:
 --   data = { recipes = { [id] = { give = { { item, amount, keep? } } } } }
--- The recipes themselves come from Config (shared/recipes.lua) and can't be created or deleted here,
--- only their list of required items changes. A recipe with no entry keeps the list from the config.
+-- Recipes from Config (shared/recipes.lua) can only have their list of required items changed; a recipe
+-- with no entry keeps the list from the config.
+-- Recipes made here are stored as { custom = true, receive = { item, amount } | nil, give = { ... } }
+-- under their id ('<Drug>:<name>') and can be deleted again.
 
 local function recipesDefaults()
     return { recipes = {} }
@@ -785,15 +787,41 @@ local function cleanGive(list)
     return clean
 end
 
+-- What a custom recipe makes: { item, amount }, or nil for "nothing by itself". The item must be a plain item name.
+local function cleanReceive(receive)
+    if type(receive) ~= 'table' then return nil end
+    local item = trim(receive.item, 64)
+    if not item then return nil end
+    if not item:match('^[%w_%-%.]+$') then return nil, 'Invalid item name.' end
+
+    local amount = receive.amount == nil and 1 or inRange(receive.amount, 1, maxRecipeAmount)
+    if not amount then return nil, ('The amount made must be between 1 and %d.'):format(maxRecipeAmount) end
+    return { item = item, amount = math.floor(amount) }
+end
+
+-- '<Drug>:<name>', letters and numbers, starting with a letter. A config recipe's id can't be reused.
+local function validRecipeId(id)
+    return type(id) == 'string' and #id <= 48 and id:match('^%a%w*:%a%w*$') ~= nil
+end
+
 -- Unknown recipe ids are skipped, so a recipe removed from the config never breaks the stored row.
 local function cleanRecipeData(data)
     if type(data) ~= 'table' then return nil, 'Invalid data.' end
     local clean = recipesDefaults()
     for id, entry in pairs(type(data.recipes) == 'table' and data.recipes or {}) do
-        if recipeInfo[id] and type(entry) == 'table' then
-            local give, giveErr = cleanGive(entry.give)
-            if not give then return nil, giveErr end
-            clean.recipes[id] = { give = give }
+        if type(entry) == 'table' then
+            local config = recipeInfo[id] and not recipeInfo[id].custom
+            if entry.custom == true and validRecipeId(id) and not config then
+                local give, giveErr = cleanGive(entry.give)
+                if not give then return nil, giveErr end
+                local receive, receiveErr = cleanReceive(entry.receive)
+                if receiveErr then return nil, receiveErr end
+                clean.recipes[id] = { custom = true, receive = receive, give = give }
+            elseif config then
+                local give, giveErr = cleanGive(entry.give)
+                if not give then return nil, giveErr end
+                clean.recipes[id] = { give = give }
+            end
         end
     end
     return clean
@@ -801,6 +829,53 @@ end
 
 local cleanCuttingData = textCleaner(cuttingDefaults)
 local cleanBaggingData = textCleaner(baggingDefaults)
+
+-- Custom drugs and events ---------------------------------------------------------------
+-- Made on the creator's "Custom drugs" page. One row, 'Custom:settings', lists the drug names:
+--   data.drugs = { 'Opium', ... }
+-- Every event of a custom drug is its own row, '<Drug>:<event>', laid out exactly like 'Cocaine:powder'
+-- (progress, anim, targetLabel, targetIcon, locations with coords / object / gang) plus
+--   data.custom = true   which tells the client and server to run it (see shared/steps.lua)
+--   data.recipe          the recipe it runs, picked on the event's page (none = it does nothing yet)
+local customStep = 'Custom:settings'
+
+local function customDrugsDefaults()
+    return { drugs = {} }
+end
+
+local function cleanCustomDrugs(data)
+    if type(data) ~= 'table' then return nil, 'Invalid data.' end
+    local clean, seen = customDrugsDefaults(), {}
+    for _, name in ipairs(type(data.drugs) == 'table' and data.drugs or {}) do
+        if type(name) == 'string' and #name <= 24 and name:match('^%a%w*$') and not seen[name:lower()] then
+            seen[name:lower()] = true
+            clean.drugs[#clean.drugs + 1] = name
+        end
+    end
+    return clean
+end
+
+-- The powder event's defaults, marked as custom.
+local function customEventDefaults()
+    local data = progressDefaults('Working', 'interact', 'BriefCase')()
+    data.custom = true
+    return data
+end
+
+local CUSTOM_EVENT = {
+    defaults = customEventDefaults,
+    cleanData = progressCleaner(customEventDefaults),
+    cleanLocations = cleanPoints,
+    readLocations = readPoints,
+}
+
+-- The drug names saved on the Custom drugs page.
+local function customDrugNames()
+    local rows = QB.sql.query('SELECT `data` FROM `qbdrugs` WHERE `step` = ? LIMIT 1', { customStep })
+    local row = rows and rows[1]
+    local clean = row and cleanCustomDrugs(decode(row.data, {}))
+    return clean and clean.drugs or {}
+end
 
 -- One row per event.
 --   defaults       fresh default data
@@ -835,6 +910,12 @@ local function textEvent(defaultsFn)
 end
 
 local EVENT_TYPES = {
+    [customStep] = {
+        defaults = customDrugsDefaults,
+        cleanData = cleanCustomDrugs,
+        fixedLocations = noLocations,
+        readLocations = noLocations,
+    },
     ['CornerSelling:settings'] = {
         defaults = cornerDefaults,
         cleanData = cleanCornerData,
@@ -926,20 +1007,60 @@ local EVENT_TYPES = {
     },
 }
 
+-- Event names that can't be used: they would clash with plants and settings rows.
+local RESERVED_STEPS = { pick = true, settings = true }
+
+-- 'Opium:cook' -> 'Opium', 'cook' when it is a well-formed custom step name, else nothing.
+local function splitCustomStep(step)
+    if type(step) ~= 'string' or #step > 49 then return end
+    local drug, name = step:match('^(%a%w*):(%a[%w_]*)$')
+    if drug and #drug <= 24 and #name <= 24 and not RESERVED_STEPS[name] then return drug, name end
+end
+
+-- A drug name the config or the built-in events already use, in any capitalisation.
+local function takenDrugName(name)
+    local lower = name:lower()
+    for _, known in ipairs(customDrugNames()) do
+        if known:lower() == lower then return true end
+    end
+    for drug in pairs(Config) do
+        if type(drug) == 'string' and drug:lower() == lower then return true end
+    end
+    for step in pairs(EVENT_TYPES) do
+        local drug = step:match('^(%w+):')
+        if drug and drug:lower() == lower then return true end
+    end
+    return false
+end
+
+-- The rules for one step: a built-in event's, or the custom event's when its drug was made here.
+local function kindFor(step)
+    if EVENT_TYPES[step] then return EVENT_TYPES[step] end
+    local drug = splitCustomStep(step)
+    if not drug then return end
+    for _, known in ipairs(customDrugNames()) do
+        if known == drug then return CUSTOM_EVENT end
+    end
+end
+
 local function validStep(step)
-    return type(step) == 'string' and EVENT_TYPES[step] ~= nil
+    return kindFor(step) ~= nil
 end
 
 -- Steps that run a recipe (defaultRecipes) keep the one the creator picked in data.recipe.
 -- A missing or unknown id falls back to the step's default.
 local function withRecipe(step, data, chosen)
     local default = defaultRecipes[step]
-    if default then data.recipe = recipeInfo[chosen] and chosen or default end
+    if default then
+        data.recipe = recipeInfo[chosen] and chosen or default
+    elseif data.custom then
+        data.recipe = recipeInfo[chosen] and chosen or nil -- custom events have no default recipe
+    end
     return data
 end
 
 local function getEvent(step)
-    local kind = EVENT_TYPES[step]
+    local kind = kindFor(step)
     local rows = QB.sql.query('SELECT * FROM `qbdrugs` WHERE `step` = ? LIMIT 1', { step })
     local row = rows and rows[1]
     if not row then
@@ -956,7 +1077,7 @@ local function saveEvent(step, patch)
     if not validStep(step) then return fail('Unknown event.') end
     if type(patch) ~= 'table' then return fail('Nothing to save.') end
 
-    local kind = EVENT_TYPES[step]
+    local kind = kindFor(step)
     local event, exists = getEvent(step)
     local data, locations = event.data, event.locations
 
@@ -1110,7 +1231,10 @@ local function recipesPayload()
 
         if makes then track(makes.item) end
         for _, entry in ipairs(give) do track(entry.item) end
-        list[#list + 1] = { id = id, label = info.label, receive = makes, give = give, edited = saved[id] ~= nil }
+        list[#list + 1] = {
+            id = id, label = info.label, receive = makes, give = give,
+            edited = saved[id] ~= nil and not info.custom, custom = info.custom == true,
+        }
     end
     return { list = list, items = items }
 end
@@ -1146,10 +1270,177 @@ adminCallback('qbdrugs:creator:recipes:set', function(_, id, give)
         end
     end
 
-    data.recipes[id] = { give = clean }
+    local entry = data.recipes[id] or {}
+    entry.give = clean -- a custom recipe keeps its custom flag and what it makes
+    data.recipes[id] = entry
     local saved, saveErr = saveEvent(recipesStep, { data = data })
     if not saved then return fail(saveErr) end
     return recipesPayload()
+end)
+
+-- Makes a new recipe: { drug, name, item, amount }. It starts with nothing required; the required items
+-- are added on its page like any other recipe.
+adminCallback('qbdrugs:creator:recipes:create', function(_, drug, name, item, amount)
+    drug, name = trim(drug, 24), trim(name, 24)
+    local id = drug and name and (drug .. ':' .. name)
+    if not validRecipeId(id) then
+        return fail('Name must be letters and numbers only, starting with a letter.')
+    end
+    if recipeInfo[id] then return fail('That recipe already exists.') end
+
+    local receive, receiveErr = cleanReceive({ item = item, amount = amount })
+    if receiveErr then return fail(receiveErr) end
+    if receive and not itemExists(receive.item) then return fail(('%s does not exist.'):format(receive.item)) end
+
+    local data = getEvent(recipesStep).data
+    data.recipes = data.recipes or {}
+    data.recipes[id] = { custom = true, receive = receive, give = {} }
+
+    local saved, saveErr = saveEvent(recipesStep, { data = data })
+    if not saved then return fail(saveErr) end
+
+    local payload = recipesPayload()
+    payload.id = id
+    return payload
+end)
+
+-- Changes what a custom recipe makes. An empty item makes it "nothing by itself".
+adminCallback('qbdrugs:creator:recipes:receive', function(_, id, item, amount)
+    if not (recipeInfo[id] and recipeInfo[id].custom) then return fail('Only recipes made here can change what they make.') end
+
+    local receive, receiveErr = cleanReceive({ item = item, amount = amount })
+    if receiveErr then return fail(receiveErr) end
+    if receive and not itemExists(receive.item) then return fail(('%s does not exist.'):format(receive.item)) end
+
+    local data = getEvent(recipesStep).data
+    local entry = data.recipes and data.recipes[id]
+    if not entry then return fail('Unknown recipe.') end
+    entry.receive = receive
+
+    local saved, saveErr = saveEvent(recipesStep, { data = data })
+    if not saved then return fail(saveErr) end
+    return recipesPayload()
+end)
+
+-- Deletes a custom recipe. Events that were set to it go back to their default recipe.
+adminCallback('qbdrugs:creator:recipes:delete', function(_, id)
+    if not (recipeInfo[id] and recipeInfo[id].custom) then return fail('Only recipes made here can be deleted.') end
+
+    local data = getEvent(recipesStep).data
+    if not (data.recipes and data.recipes[id]) then return fail('Unknown recipe.') end
+    data.recipes[id] = nil
+
+    local saved, saveErr = saveEvent(recipesStep, { data = data })
+    if not saved then return fail(saveErr) end
+    return recipesPayload()
+end)
+
+-- Custom drugs picker -------------------------------------------------------------------
+-- Every custom drug with its events: { drugs = { { name, events = { { step, name } } } } }
+local function customPayload()
+    local drugs, byName = {}, {}
+    for _, name in ipairs(customDrugNames()) do
+        byName[name] = { name = name, events = {} }
+        drugs[#drugs + 1] = byName[name]
+    end
+
+    for _, row in ipairs(QB.sql.query('SELECT `step`, `data` FROM `qbdrugs`') or {}) do
+        local drug, name = splitCustomStep(row.step)
+        if drug and byName[drug] and decode(row.data, {}).custom == true then
+            table.insert(byName[drug].events, { step = row.step, name = name })
+        end
+    end
+
+    for _, entry in ipairs(drugs) do
+        table.sort(entry.events, function(a, b) return a.name < b.name end)
+    end
+    return { drugs = drugs }
+end
+
+-- Deletes one event row and tells clients it is gone.
+local function dropEvent(step)
+    local ok, err = QB.sql.update('DELETE FROM `qbdrugs` WHERE `step` = ?', { step })
+    if not ok then return false, err end
+    pcall(function() exports[GetCurrentResourceName()]:ReloadEvents(step) end)
+    return true
+end
+
+adminCallback('qbdrugs:creator:custom:get', function()
+    return customPayload()
+end)
+
+adminCallback('qbdrugs:creator:custom:drug:create', function(_, name)
+    name = trim(name, 25)
+    if not (name and #name <= 24 and name:match('^%a%w*$')) then
+        return fail('Name must be letters and numbers only, starting with a letter, 24 at most.')
+    end
+    if takenDrugName(name) then return fail('That name is already used.') end
+
+    local data = getEvent(customStep).data
+    data.drugs[#data.drugs + 1] = name
+    local saved, saveErr = saveEvent(customStep, { data = data })
+    if not saved then return fail(saveErr) end
+
+    local payload = customPayload()
+    payload.name = name
+    return payload
+end)
+
+-- Deletes the drug and all of its events. Recipes made for it on the Recipes page stay.
+adminCallback('qbdrugs:creator:custom:drug:delete', function(_, name)
+    local data = getEvent(customStep).data
+    local kept, found = {}, false
+    for _, known in ipairs(data.drugs) do
+        if known == name then found = true else kept[#kept + 1] = known end
+    end
+    if not found then return fail('Unknown drug.') end
+
+    for _, drug in ipairs(customPayload().drugs) do
+        if drug.name == name then
+            for _, event in ipairs(drug.events) do
+                local ok, err = dropEvent(event.step)
+                if not ok then return fail(err or 'Failed to delete an event.') end
+            end
+        end
+    end
+
+    data.drugs = kept
+    local saved, saveErr = saveEvent(customStep, { data = data })
+    if not saved then return fail(saveErr) end
+    return customPayload()
+end)
+
+-- A new event starts as a copy of the powder event's format, named after itself.
+adminCallback('qbdrugs:creator:custom:event:create', function(_, drug, name)
+    name = trim(name, 25)
+    if not (name and #name <= 24 and name:match('^%a[%w_]*$')) then
+        return fail('Name must be letters, numbers and _, starting with a letter, 24 at most.')
+    end
+
+    local step = tostring(drug) .. ':' .. name
+    if kindFor(step) ~= CUSTOM_EVENT then return fail('Unknown drug, or that name is not allowed.') end
+
+    for _, entry in ipairs(customPayload().drugs) do
+        if entry.name == drug then
+            for _, event in ipairs(entry.events) do
+                if event.name:lower() == name:lower() then return fail('That event already exists.') end
+            end
+        end
+    end
+
+    local saved, saveErr = saveEvent(step, { data = { targetLabel = name, progress = { label = name } } })
+    if not saved then return fail(saveErr) end
+
+    local payload = customPayload()
+    payload.step = step
+    return payload
+end)
+
+adminCallback('qbdrugs:creator:custom:event:delete', function(_, step)
+    if kindFor(step) ~= CUSTOM_EVENT then return fail('Only custom events can be deleted.') end
+    local ok, err = dropEvent(step)
+    if not ok then return fail(err or 'Failed to delete the event.') end
+    return customPayload()
 end)
 
 CreateThread(function()

@@ -14,6 +14,9 @@ local corner = { data = nil, items = {}, query = nil, results = {}, total = 0 }
 -- the selected recipe id and the last item search.
 local recipes = { list = {}, items = {}, selected = nil, query = nil, results = {}, total = 0 }
 
+-- Custom drugs page: every drug made here with its events, and the one that is open.
+local customs = { drugs = {}, selected = nil }
+
 -- Event types the creator can edit. Add the next event here (and in server/creator.lua).
 -- kind picks which editor the event gets:
 --   'lab'    many entrances, one exit (`exit` is where every entrance leads)
@@ -77,9 +80,28 @@ local EVENTS = {
       text = { noun = 'bagging bucket', fields = targetFields({ 'Target', 'targetLabel', 'targetIcon', 'Bag Meth', 'fa-solid fa-bag-shopping' }) } },
 }
 
+-- The custom drug and event a step belongs to, if it was made on the Custom drugs page.
+local function customEvent(step)
+    for _, drug in ipairs(customs.drugs) do
+        for _, event in ipairs(drug.events) do
+            if event.step == step then return drug, event end
+        end
+    end
+end
+
 local function eventInfo(step)
     for _, event in ipairs(EVENTS) do
         if event.step == step then return event end
+    end
+
+    -- a custom event is a Cocaine Powder copy: same editor, same settings
+    local drug, event = customEvent(step)
+    if event then
+        return {
+            step = step, kind = 'points', custom = true,
+            label = ('%s · %s'):format(drug.name, event.name), icon = 'Package',
+            points = { noun = 'use it', progress = event.name, label = event.name, icon = 'BriefCase' },
+        }
     end
 end
 
@@ -475,9 +497,13 @@ end
 -- are edited on the Recipes page.
 local function recipeField(step, data)
     local default = defaultRecipes[step]
-    if not default then return end
+    local custom = data.custom == true
+    if not (default or custom) then return end
 
     local options = {}
+    if custom then
+        options[1] = { value = 'none', label = 'None (does nothing yet)' } -- the NUI rejects an empty option value
+    end
     for _, id in ipairs(recipeIds) do
         local info = recipeInfo[id]
         local made = info.recipe.receive and info.recipe.receive.item
@@ -486,7 +512,7 @@ local function recipeField(step, data)
 
     return {
         id = 'recipe', label = 'Recipe', type = 'select',
-        default = recipeInfo[data.recipe] and data.recipe or default,
+        default = recipeInfo[data.recipe] and data.recipe or default or 'none',
         options = options,
         description = 'The recipe this event runs. Edit its items on the Recipes page.',
     }
@@ -504,10 +530,94 @@ end
 
 local function eventView()
     local info = eventInfo(selectedEvent.step)
-    if info.kind == 'points' then return withRecipeField(pointsView(info), info) end
+    if info.kind == 'points' then
+        local view = withRecipeField(pointsView(info), info)
+        if info.custom then
+            table.insert(view.content.blocks, {
+                type = 'actions',
+                actions = { { id = 'custom:event:delete', label = 'Delete event', variant = 'destructive' } },
+            })
+        end
+        return view
+    end
     if info.kind == 'text' then return withRecipeField(textView(info), info) end
     if info.kind == 'station' then return withRecipeField(stationView(info), info) end
     return labView(info)
+end
+
+-- Custom drugs -------------------------------------------------------------------------------
+
+local function selectedCustom()
+    for _, drug in ipairs(customs.drugs) do
+        if drug.name == customs.selected then return drug end
+    end
+end
+
+local function customsView()
+    local items = {}
+    for _, drug in ipairs(customs.drugs) do
+        items[#items + 1] = {
+            id = drug.name,
+            label = drug.name,
+            icon = 'FlaskConical',
+            description = ('%d events'):format(#drug.events),
+            action = 'custom:select:' .. drug.name,
+        }
+    end
+
+    return {
+        id = 'customs', label = 'Custom drugs', icon = 'Package',
+        content = {
+            title = 'Custom drugs',
+            description = 'Make a new drug, then add events to it. Every event is a copy of Cocaine Powder: same settings, same locations.',
+            blocks = {
+                {
+                    type = 'form', id = 'custom-create', title = 'New drug',
+                    fields = {
+                        { id = 'name', label = 'Name', type = 'text', required = true,
+                            description = 'Letters and numbers only, starting with a letter. e.g. Opium' },
+                    },
+                    action = { id = 'custom:create', label = 'Create drug' },
+                },
+                { type = 'list', id = 'custom-list', layout = 'cards', columns = 3, items = items, empty = 'No custom drugs yet.' },
+            },
+        },
+    }
+end
+
+local function customView()
+    local drug = selectedCustom()
+
+    local items = {}
+    for _, event in ipairs(drug.events) do
+        items[#items + 1] = {
+            id = event.step,
+            label = event.name,
+            icon = 'Package',
+            description = event.step,
+            action = 'event:select:' .. event.step,
+        }
+    end
+
+    return {
+        id = 'custom', label = drug.name, icon = 'FlaskConical',
+        content = {
+            title = drug.name,
+            description = 'Add events to this drug. Make its recipes on the Recipes page, then pick one on each event.',
+            blocks = {
+                {
+                    type = 'form', id = 'custom-event-create', title = 'New event',
+                    fields = {
+                        { id = 'name', label = 'Name', type = 'text', required = true,
+                            description = 'Letters, numbers and _, starting with a letter. e.g. cook' },
+                    },
+                    action = { id = 'custom:event:create', label = 'Add event' },
+                },
+                { type = 'list', id = 'custom-events', layout = 'cards', columns = 3, items = items, empty = 'No events yet.' },
+                { type = 'actions', actions = { { id = 'custom:delete', label = 'Delete drug', variant = 'destructive' } } },
+            },
+        },
+    }
 end
 
 -- Cornerselling -----------------------------------------------------------------------------
@@ -676,17 +786,38 @@ local function giveCopy(recipe)
     return copy
 end
 
+-- The drugs that have a recipe, for the "new recipe" dropdown.
+local function recipeDrugs()
+    local seen, drugs = {}, {}
+    for _, recipe in ipairs(recipes.list) do
+        local drug = recipe.id:match('^(%w+):')
+        if drug and not seen[drug] then
+            seen[drug] = true
+            drugs[#drugs + 1] = { value = drug, label = drug }
+        end
+    end
+    for _, custom in ipairs(customs.drugs) do
+        if not seen[custom.name] then
+            seen[custom.name] = true
+            drugs[#drugs + 1] = { value = custom.name, label = custom.name }
+        end
+    end
+    return drugs
+end
+
 local function recipesView()
     local items = {}
     for _, recipe in ipairs(recipes.list) do
+        -- built with insert, never with `x and {...} or nil` in the middle: a hole becomes null in the UI
+        local metadata = { { label = 'Needs', value = needsText(recipe) } }
+        if recipe.custom then metadata[#metadata + 1] = { label = 'Status', value = 'Custom' } end
+        if recipe.edited then metadata[#metadata + 1] = { label = 'Status', value = 'Edited' } end
+
         items[#items + 1] = {
             id = recipe.id,
             label = recipe.label,
             description = makesText(recipe),
-            metadata = {
-                { label = 'Needs', value = needsText(recipe) },
-                recipe.edited and { label = 'Status', value = 'Edited' } or nil,
-            },
+            metadata = metadata,
             action = 'recipe:select:' .. recipe.id,
         }
     end
@@ -695,9 +826,22 @@ local function recipesView()
         id = 'recipes', label = 'Recipes', icon = 'FlaskConical',
         content = {
             title = 'Recipes',
-            description = 'Every recipe from the config. Pick one to change what it needs. Recipes cannot be deleted.',
+            description = 'Pick a recipe to change what it needs, or make a new one. Only recipes made here can be deleted.',
             blocks = {
-                { type = 'list', id = 'recipe-list', layout = 'cards', columns = 3, items = items, empty = 'No recipes found in the config.' },
+                {
+                    type = 'form', id = 'recipe-create', title = 'New recipe',
+                    fields = {
+                        { id = 'drug', label = 'Drug', type = 'select', options = recipeDrugs(),
+                            default = recipeDrugs()[1] and recipeDrugs()[1].value },
+                        { id = 'name', label = 'Name', type = 'text', required = true,
+                            description = 'Letters and numbers only, starting with a letter. e.g. Snow' },
+                        { id = 'item', label = 'Item it makes', type = 'text',
+                            description = 'The item name the player receives. Leave empty for a recipe that makes nothing by itself.' },
+                        { id = 'amount', label = 'Amount made', type = 'number', min = 1, max = 1000, default = 1 },
+                    },
+                    action = { id = 'recipe:create', label = 'Create recipe' },
+                },
+                { type = 'list', id = 'recipe-list', layout = 'cards', columns = 3, items = items, empty = 'No recipes found.' },
             },
         },
     }
@@ -771,6 +915,23 @@ local function recipeView()
         items = required, empty = 'Nothing is required yet. Search above to add an item.',
     }
 
+    if recipe.custom then
+        table.insert(blocks, 1, {
+            type = 'form', id = 'recipe-receive', title = 'What it makes',
+            fields = {
+                { id = 'item', label = 'Item it makes', type = 'text', default = recipe.receive and recipe.receive.item or '',
+                    description = 'Leave empty for a recipe that makes nothing by itself.' },
+                { id = 'amount', label = 'Amount made', type = 'number', min = 1, max = 1000,
+                    default = recipe.receive and recipe.receive.amount or 1 },
+            },
+            action = { id = 'recipe:receive', label = 'Save' },
+        })
+        blocks[#blocks + 1] = {
+            type = 'actions', title = 'Danger zone',
+            actions = { { id = 'recipe:delete', label = 'Delete recipe', variant = 'destructive' } },
+        }
+    end
+
     return {
         id = 'recipe', label = recipe.label, icon = 'FlaskConical',
         content = {
@@ -788,8 +949,12 @@ local function buildNavigation()
         navigation[#navigation + 1] = spotsView()
     end
     navigation[#navigation + 1] = eventsView()
-    if selectedEvent then
+    if selectedEvent and eventInfo(selectedEvent.step) then
         navigation[#navigation + 1] = eventView()
+    end
+    navigation[#navigation + 1] = customsView()
+    if selectedCustom() then
+        navigation[#navigation + 1] = customView()
     end
     navigation[#navigation + 1] = cornerView()
     navigation[#navigation + 1] = recipesView()
@@ -922,7 +1087,9 @@ local function saveEventData(values)
         data = { enterTarget = values.enterTarget or '', exitTarget = values.exitTarget or '' }
     end
 
-    if defaultRecipes[selectedEvent.step] then data.recipe = values.recipe end
+    if defaultRecipes[selectedEvent.step] or eventInfo(selectedEvent.step).custom then
+        data.recipe = values.recipe ~= 'none' and values.recipe or nil -- 'none' = no recipe yet (custom events only)
+    end
 
     local ok, err = persistEvent({ data = data })
     if not ok then return fail(err) end
@@ -1135,6 +1302,19 @@ local function recipeAction(actionId, values)
         return refresh()
     end
 
+    if actionId == 'recipe:create' then
+        local drug = type(values.drug) == 'string' and values.drug or ''
+        local name = type(values.name) == 'string' and values.name or ''
+        local item = type(values.item) == 'string' and values.item or ''
+        local result, err = QB.callback.trigger('qbdrugs:creator:recipes:create', drug, name, item, tonumber(values.amount) or 1)
+        if not result then return fail(err or 'Failed to create the recipe.') end
+
+        recipes.list, recipes.items = result.list or {}, result.items or {}
+        recipes.selected, recipes.query, recipes.results, recipes.total = result.id, nil, {}, 0
+        currentView = 'recipe'
+        return refresh(notice('Recipe created. Add the items it needs below.'))
+    end
+
     local selectId = actionId:match('^recipe:select:(.+)$')
     if selectId then
         if not recipeEntry(selectId) then return fail('Unknown recipe.') end
@@ -1145,6 +1325,30 @@ local function recipeAction(actionId, values)
 
     local recipe = recipeEntry(recipes.selected)
     if not recipe then return fail('Pick a recipe first.') end
+
+    if actionId == 'recipe:receive' then
+        local item = type(values.item) == 'string' and values.item or ''
+        local result, err = QB.callback.trigger('qbdrugs:creator:recipes:receive', recipe.id, item, tonumber(values.amount) or 1)
+        if not result then return fail(err or 'Failed to save.') end
+        recipes.list, recipes.items = result.list or {}, result.items or {}
+        return refresh(notice('Saved.'))
+    end
+
+    if actionId == 'recipe:delete' then
+        local confirmation = QB.nui.openAlert({
+            title = 'Delete recipe?',
+            message = ('This removes %s. Events that used it go back to their default recipe.'):format(recipe.label),
+            confirmLabel = 'Delete',
+        })
+        if not confirmation or not confirmation.confirmed then return refresh() end
+
+        local result, err = QB.callback.trigger('qbdrugs:creator:recipes:delete', recipe.id)
+        if not result then return fail(err or 'Failed to delete the recipe.') end
+        recipes.list, recipes.items = result.list or {}, result.items or {}
+        recipes.selected, recipes.query, recipes.results, recipes.total = nil, nil, {}, 0
+        currentView = 'recipes'
+        return refresh(notice('Recipe deleted.'))
+    end
 
     if actionId == 'recipe:search' then
         local query = type(values.query) == 'string' and values.query:match('^%s*(.-)%s*$') or ''
@@ -1204,12 +1408,90 @@ local function recipeAction(actionId, values)
     return refresh()
 end
 
+local function loadCustoms()
+    local result, err = QB.callback.trigger('qbdrugs:creator:custom:get')
+    if not result then
+        QB.notify.send({ title = 'Drug Creator', message = err or 'Could not load the custom drugs.', type = 'error' })
+        return false
+    end
+    customs.drugs = result.drugs or {}
+    return true
+end
+
+local function customAction(actionId, values)
+    if actionId == 'custom:create' then
+        local name = type(values.name) == 'string' and values.name or ''
+        local result, err = QB.callback.trigger('qbdrugs:creator:custom:drug:create', name)
+        if not result then return fail(err or 'Failed to create the drug.') end
+
+        customs.drugs, customs.selected, currentView = result.drugs or {}, result.name, 'custom'
+        return refresh(notice('Drug created. Add its events below.'))
+    end
+
+    local pick = actionId:match('^custom:select:(.+)$')
+    if pick then
+        customs.selected = pick
+        if not selectedCustom() then return fail('Unknown drug.') end
+        currentView = 'custom'
+        return refresh()
+    end
+
+    local drug = selectedCustom()
+    if not drug then return refresh() end
+
+    if actionId == 'custom:event:create' then
+        local name = type(values.name) == 'string' and values.name or ''
+        local result, err = QB.callback.trigger('qbdrugs:creator:custom:event:create', drug.name, name)
+        if not result then return fail(err or 'Failed to add the event.') end
+
+        customs.drugs = result.drugs or {}
+        return selectEvent(result.step)
+    end
+
+    if actionId == 'custom:delete' then
+        local confirmation = QB.nui.openAlert({
+            title = 'Delete drug?',
+            message = ('This removes %s and all %d of its events. Its recipes stay on the Recipes page.'):format(drug.name, #drug.events),
+            confirmLabel = 'Delete',
+        })
+        if not confirmation or not confirmation.confirmed then return refresh() end
+
+        local result, err = QB.callback.trigger('qbdrugs:creator:custom:drug:delete', drug.name)
+        if not result then return fail(err or 'Failed to delete the drug.') end
+
+        if selectedEvent and selectedEvent.step:match('^' .. drug.name .. ':') then selectedEvent = nil end
+        customs.drugs, customs.selected, currentView = result.drugs or {}, nil, 'customs'
+        return refresh(notice('Drug deleted.'))
+    end
+
+    if actionId == 'custom:event:delete' then
+        if not (selectedEvent and eventInfo(selectedEvent.step) and eventInfo(selectedEvent.step).custom) then return refresh() end
+
+        local confirmation = QB.nui.openAlert({
+            title = 'Delete event?',
+            message = ('This removes %s and all of its locations.'):format(selectedEvent.step),
+            confirmLabel = 'Delete',
+        })
+        if not confirmation or not confirmation.confirmed then return refresh() end
+
+        local result, err = QB.callback.trigger('qbdrugs:creator:custom:event:delete', selectedEvent.step)
+        if not result then return fail(err or 'Failed to delete the event.') end
+
+        selectedEvent, currentView = nil, 'custom'
+        customs.drugs = result.drugs or {}
+        return refresh(notice('Event deleted.'))
+    end
+
+    return refresh()
+end
+
 local function onAction(actionId, context)
     local values = context and context.value or {}
 
     if actionId == 'create' then return createPlant(values) end
     if actionId:match('^corner:') then return cornerAction(actionId, values) end
     if actionId:match('^recipe:') then return recipeAction(actionId, values) end
+    if actionId:match('^custom:') then return customAction(actionId, values) end
 
     local eventStep = actionId:match('^event:select:(.+)$')
     if eventStep then return selectEvent(eventStep) end
@@ -1367,6 +1649,7 @@ local function open()
 
     corner.query, corner.results, corner.total = nil, {}, 0
     loadCorner()
+    loadCustoms()
     recipes.query, recipes.results, recipes.total = nil, {}, 0
     loadRecipes()
 

@@ -43,6 +43,13 @@
 --   locations []
 --   Only recipes that were edited have an entry; the rest keep the list from shared/config.lua.
 --
+-- Row layout for 'Custom:settings' (Drugs.Custom.settings):
+--   data      { drugs = { 'Opium', ... } }
+--   locations []
+--   Every event of those drugs is a row of its own, '<Drug>:<event>', laid out like 'Cocaine:powder' with
+--   data.custom = true and data.recipe = the recipe it runs. They are not listed in EventSteps below: they
+--   come in with the rest of the table, and client/_functions.lua builds their targets.
+--
 -- Steps that always exist in Drugs, even before their row does, so callers never
 -- have to nil-check Drugs.Cocaine.lab.
 EventSteps = {

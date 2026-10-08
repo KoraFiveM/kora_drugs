@@ -42,8 +42,52 @@ end
 
 findRecipes()
 
+-- Recipes made in the creator live in the 'Recipes:settings' row next to the edited config ones:
+--   data.recipes['Cocaine:snow'] = { custom = true, receive = { item, amount } | nil, give = { ... } }
+-- They are added to recipeInfo / recipeIds here, so everything that lists or runs a recipe
+-- (the event dropdowns, stepRecipe, craft) treats them like the ones from the config.
+local function rebuildIds()
+    for index = #recipeIds, 1, -1 do recipeIds[index] = nil end
+    for id in pairs(recipeInfo) do recipeIds[#recipeIds + 1] = id end
+    table.sort(recipeIds)
+end
+
+local function syncCustomRecipes(saved)
+    for id, info in pairs(recipeInfo) do
+        if info.custom and not (type(saved[id]) == 'table' and saved[id].custom) then
+            recipeInfo[id] = nil
+        end
+    end
+
+    for id, entry in pairs(saved) do
+        local existing = recipeInfo[id]
+        if type(entry) == 'table' and entry.custom and not (existing and not existing.custom) then
+            local drug, name = id:match('^(%w+):(%w+)$')
+            if drug then
+                local receive = type(entry.receive) == 'table' and entry.receive.item
+                    and { item = entry.receive.item, amount = entry.receive.amount or 1 } or nil
+                if existing then
+                    existing.recipe.receive = receive
+                else
+                    recipeInfo[id] = {
+                        id = id,
+                        drug = drug,
+                        label = ('%s · %s'):format(drug, (name:gsub('^%l', string.upper))),
+                        recipe = { receive = receive, give = {} },
+                        defaultGive = {},
+                        custom = true,
+                    }
+                end
+            end
+        end
+    end
+
+    rebuildIds()
+end
+
 function applyRecipes(saved)
     saved = type(saved) == 'table' and saved or {}
+    syncCustomRecipes(saved)
     for _, id in ipairs(recipeIds) do
         local info = recipeInfo[id]
         local override = type(saved[id]) == 'table' and saved[id].give
