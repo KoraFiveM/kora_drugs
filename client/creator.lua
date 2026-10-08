@@ -10,6 +10,10 @@ local pendingTool = nil
 local CORNER_STEP = 'CornerSelling:settings'
 local corner = { data = nil, items = {}, query = nil, results = {}, total = 0 }
 
+-- Recipes page: every recipe in the config with its required items, a label/image for every item shown,
+-- the selected recipe id and the last item search.
+local recipes = { list = {}, items = {}, selected = nil, query = nil, results = {}, total = 0 }
+
 -- Event types the creator can edit. Add the next event here (and in server/creator.lua).
 -- kind picks which editor the event gets:
 --   'lab'    many entrances, one exit (`exit` is where every entrance leads)
@@ -467,11 +471,42 @@ local function stationView(info)
     }
 end
 
+-- Every recipe an event can run, as "Cocaine · Powdering → coke_powder". The items themselves
+-- are edited on the Recipes page.
+local function recipeField(step, data)
+    local default = defaultRecipes[step]
+    if not default then return end
+
+    local options = {}
+    for _, id in ipairs(recipeIds) do
+        local info = recipeInfo[id]
+        local made = info.recipe.receive and info.recipe.receive.item
+        options[#options + 1] = { value = id, label = made and ('%s → %s'):format(info.label, made) or info.label }
+    end
+
+    return {
+        id = 'recipe', label = 'Recipe', type = 'select',
+        default = recipeInfo[data.recipe] and data.recipe or default,
+        options = options,
+        description = 'The recipe this event runs. Edit its items on the Recipes page.',
+    }
+end
+
+-- Puts the recipe picker at the top of the event's settings form.
+local function withRecipeField(view, info)
+    local field = recipeField(info.step, selectedEvent.data or {})
+    if not field then return view end
+    for _, block in ipairs(view.content.blocks) do
+        if block.id == 'event-data' then table.insert(block.fields, 1, field) end
+    end
+    return view
+end
+
 local function eventView()
     local info = eventInfo(selectedEvent.step)
-    if info.kind == 'points' then return pointsView(info) end
-    if info.kind == 'text' then return textView(info) end
-    if info.kind == 'station' then return stationView(info) end
+    if info.kind == 'points' then return withRecipeField(pointsView(info), info) end
+    if info.kind == 'text' then return withRecipeField(textView(info), info) end
+    if info.kind == 'station' then return withRecipeField(stationView(info), info) end
     return labView(info)
 end
 
@@ -606,6 +641,146 @@ local function cornerView()
     }
 end
 
+-- Recipes -----------------------------------------------------------------------------------
+
+local function recipeEntry(id)
+    for _, recipe in ipairs(recipes.list) do
+        if recipe.id == id then return recipe end
+    end
+end
+
+local function recipeItemLabel(name)
+    local info = recipes.items[name]
+    return info and info.label or name
+end
+
+local function makesText(recipe)
+    if not recipe.receive then return 'Makes nothing by itself' end
+    return ('Makes %dx %s'):format(recipe.receive.amount, recipeItemLabel(recipe.receive.item))
+end
+
+local function needsText(recipe)
+    local parts = {}
+    for _, entry in ipairs(recipe.give) do
+        parts[#parts + 1] = ('%dx %s'):format(entry.amount, recipeItemLabel(entry.item))
+    end
+    return #parts > 0 and table.concat(parts, ', ') or 'Nothing'
+end
+
+-- A copy of a recipe's required items that can be changed and sent back.
+local function giveCopy(recipe)
+    local copy = {}
+    for _, entry in ipairs(recipe.give) do
+        copy[#copy + 1] = { item = entry.item, amount = entry.amount, keep = entry.keep }
+    end
+    return copy
+end
+
+local function recipesView()
+    local items = {}
+    for _, recipe in ipairs(recipes.list) do
+        items[#items + 1] = {
+            id = recipe.id,
+            label = recipe.label,
+            description = makesText(recipe),
+            metadata = {
+                { label = 'Needs', value = needsText(recipe) },
+                recipe.edited and { label = 'Status', value = 'Edited' } or nil,
+            },
+            action = 'recipe:select:' .. recipe.id,
+        }
+    end
+
+    return {
+        id = 'recipes', label = 'Recipes', icon = 'FlaskConical',
+        content = {
+            title = 'Recipes',
+            description = 'Every recipe from the config. Pick one to change what it needs. Recipes cannot be deleted.',
+            blocks = {
+                { type = 'list', id = 'recipe-list', layout = 'cards', columns = 3, items = items, empty = 'No recipes found in the config.' },
+            },
+        },
+    }
+end
+
+local function recipeView()
+    local recipe = recipeEntry(recipes.selected)
+    if not recipe then
+        return {
+            id = 'recipe', label = 'Recipe', icon = 'FlaskConical',
+            content = { title = 'Recipe', blocks = { { type = 'empty', title = 'Pick a recipe first.' } } },
+        }
+    end
+
+    local required = {}
+    for _, entry in ipairs(recipe.give) do
+        local info = recipes.items[entry.item]
+        required[#required + 1] = {
+            id = entry.item,
+            label = recipeItemLabel(entry.item),
+            description = info and entry.item or (entry.item .. ' · not in the shared items'),
+            image = info and info.image or nil,
+            metadata = {
+                { label = 'Amount', value = ('%dx'):format(entry.amount) },
+                entry.keep and { label = 'Used up', value = 'No, kept' } or nil,
+            },
+            actions = {
+                { id = 'recipe:edit:' .. entry.item, label = 'Edit', icon = 'Pencil', variant = 'primary' },
+                { id = 'recipe:remove:' .. entry.item, label = 'Remove', icon = 'Trash2', variant = 'destructive' },
+            },
+        }
+    end
+
+    local found = {}
+    for _, result in ipairs(recipes.results) do
+        found[#found + 1] = {
+            id = result.name,
+            label = result.label,
+            description = result.name,
+            image = result.image,
+            metadata = result.added and { { label = 'Status', value = 'Already in the recipe' } } or nil,
+            actions = result.added and {} or {
+                { id = 'recipe:add:' .. result.name, label = 'Add', icon = 'Plus', variant = 'primary' },
+            },
+        }
+    end
+
+    local blocks = {
+        {
+            type = 'form', id = 'recipe-search', title = 'Add items',
+            fields = {
+                { id = 'query', label = 'Search all items', type = 'text', default = recipes.query or '',
+                    description = 'Part of an item name or label. Add the ones this recipe should need below.' },
+            },
+            action = { id = 'recipe:search', label = 'Search' },
+        },
+    }
+
+    if recipes.query then
+        local more = recipes.total > #found and (' of ' .. recipes.total) or ''
+        blocks[#blocks + 1] = {
+            type = 'list', id = 'recipe-results', layout = 'cards', columns = 3,
+            title = ('Results for "%s" (%d%s)'):format(recipes.query, #found, more),
+            items = found, empty = 'No items match that search.',
+        }
+    end
+
+    blocks[#blocks + 1] = {
+        type = 'list', id = 'recipe-required', layout = 'cards', columns = 3,
+        title = ('Required items (%d)'):format(#required),
+        items = required, empty = 'Nothing is required yet. Search above to add an item.',
+    }
+
+    return {
+        id = 'recipe', label = recipe.label, icon = 'FlaskConical',
+        content = {
+            title = recipe.label,
+            description = makesText(recipe) .. '. These are the items a player needs to make it.',
+            blocks = blocks,
+        },
+    }
+end
+
 local function buildNavigation()
     local navigation = { plantsView() }
     if selected then
@@ -617,6 +792,10 @@ local function buildNavigation()
         navigation[#navigation + 1] = eventView()
     end
     navigation[#navigation + 1] = cornerView()
+    navigation[#navigation + 1] = recipesView()
+    if recipes.selected then
+        navigation[#navigation + 1] = recipeView()
+    end
     return navigation
 end
 
@@ -742,6 +921,8 @@ local function saveEventData(values)
     else
         data = { enterTarget = values.enterTarget or '', exitTarget = values.exitTarget or '' }
     end
+
+    if defaultRecipes[selectedEvent.step] then data.recipe = values.recipe end
 
     local ok, err = persistEvent({ data = data })
     if not ok then return fail(err) end
@@ -906,11 +1087,129 @@ local function cornerAction(actionId, values)
     return refresh()
 end
 
+-- Recipes
+
+local function loadRecipes()
+    local result, err = QB.callback.trigger('qbdrugs:creator:recipes:get')
+    if not result then
+        QB.notify.send({ title = 'Drug Creator', message = err or 'Could not load the recipes.', type = 'error' })
+        return false
+    end
+    recipes.list, recipes.items = result.list or {}, result.items or {}
+    return true
+end
+
+-- Amount and "used up" prompt. Returns { amount, keep }, or nil if it was cancelled.
+local function askAmount(label, title, current)
+    local result = QB.nui.openInputDialog({
+        { id = 'amount', label = 'Amount needed', type = 'number', min = 1, max = 1000, default = current and current.amount or 1, required = true },
+        {
+            id = 'keep', label = 'Used up when crafting?', type = 'select',
+            default = current and current.keep and 'keep' or 'use',
+            options = { { value = 'use', label = 'Yes, used up' }, { value = 'keep', label = 'No, the player keeps it' } },
+        },
+    }, title, label)
+    if not result or result.cancelled then return nil end
+
+    local amount = tonumber(result.values and result.values.amount)
+    if not amount then return nil end
+    return { amount = math.floor(amount), keep = result.values.keep == 'keep' or nil }
+end
+
+-- Sends the whole new list of one recipe and takes the server's copy of every recipe back.
+local function saveRecipe(recipe, give, message)
+    local result, err = QB.callback.trigger('qbdrugs:creator:recipes:set', recipe.id, give)
+    if not result then return fail(err or 'Failed to save.') end
+    recipes.list, recipes.items = result.list or {}, result.items or {}
+
+    local updated = recipeEntry(recipe.id)
+    local inRecipe = {}
+    for _, entry in ipairs(updated and updated.give or {}) do inRecipe[entry.item] = true end
+    for _, found in ipairs(recipes.results) do found.added = inRecipe[found.name] == true end
+    return refresh(notice(message))
+end
+
+local function recipeAction(actionId, values)
+    if actionId == 'recipe:reload' then
+        loadRecipes()
+        return refresh()
+    end
+
+    local selectId = actionId:match('^recipe:select:(.+)$')
+    if selectId then
+        if not recipeEntry(selectId) then return fail('Unknown recipe.') end
+        recipes.selected, recipes.query, recipes.results, recipes.total = selectId, nil, {}, 0
+        currentView = 'recipe'
+        return refresh()
+    end
+
+    local recipe = recipeEntry(recipes.selected)
+    if not recipe then return fail('Pick a recipe first.') end
+
+    if actionId == 'recipe:search' then
+        local query = type(values.query) == 'string' and values.query:match('^%s*(.-)%s*$') or ''
+        if query == '' then
+            recipes.query, recipes.results, recipes.total = nil, {}, 0
+            return refresh()
+        end
+
+        local result, err = QB.callback.trigger('qbdrugs:creator:recipes:search', query, recipe.id)
+        if not result then return fail(err or 'The search failed.') end
+        recipes.query, recipes.results = query, result.results or {}
+        recipes.total = result.total or #recipes.results
+        return refresh()
+    end
+
+    local addName = actionId:match('^recipe:add:(.+)$')
+    if addName then
+        local found
+        for _, result in ipairs(recipes.results) do
+            if result.name == addName then found = result break end
+        end
+        if not found then return fail('Search for that item again first.') end
+
+        local picked = askAmount(found.label, 'Add to recipe')
+        if not picked then return refresh() end
+
+        local give = giveCopy(recipe)
+        give[#give + 1] = { item = addName, amount = picked.amount, keep = picked.keep }
+        return saveRecipe(recipe, give, ('%dx %s added.'):format(picked.amount, found.label))
+    end
+
+    local editName = actionId:match('^recipe:edit:(.+)$')
+    if editName then
+        local give = giveCopy(recipe)
+        local entry
+        for _, candidate in ipairs(give) do
+            if candidate.item == editName then entry = candidate break end
+        end
+        if not entry then return refresh() end
+
+        local picked = askAmount(recipeItemLabel(editName), 'Edit item', entry)
+        if not picked then return refresh() end
+
+        entry.amount, entry.keep = picked.amount, picked.keep
+        return saveRecipe(recipe, give, ('%s now needs %dx.'):format(recipeItemLabel(editName), picked.amount))
+    end
+
+    local removeName = actionId:match('^recipe:remove:(.+)$')
+    if removeName then
+        local give = {}
+        for _, entry in ipairs(giveCopy(recipe)) do
+            if entry.item ~= removeName then give[#give + 1] = entry end
+        end
+        return saveRecipe(recipe, give, ('%s removed.'):format(recipeItemLabel(removeName)))
+    end
+
+    return refresh()
+end
+
 local function onAction(actionId, context)
     local values = context and context.value or {}
 
     if actionId == 'create' then return createPlant(values) end
     if actionId:match('^corner:') then return cornerAction(actionId, values) end
+    if actionId:match('^recipe:') then return recipeAction(actionId, values) end
 
     local eventStep = actionId:match('^event:select:(.+)$')
     if eventStep then return selectEvent(eventStep) end
@@ -1068,6 +1367,8 @@ local function open()
 
     corner.query, corner.results, corner.total = nil, {}, 0
     loadCorner()
+    recipes.query, recipes.results, recipes.total = nil, {}, 0
+    loadRecipes()
 
     while true do
         QB.nui.updateApp(APP_ID, { navigation = buildNavigation() })

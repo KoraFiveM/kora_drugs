@@ -4,6 +4,9 @@
 -- plantSpawns.lua to reload so clients pick up the change.
 
 local MAX_SPOTS = 200 -- most spots one plant type may have
+local maxRecipeItems = 20 -- most required items one recipe may have
+local maxRecipeAmount = 1000 -- most of one item a recipe may ask for
+local recipesStep = 'Recipes:settings'
 
 local function fail(message)
     return false, message
@@ -752,6 +755,50 @@ local function cleanCornerData(data)
     return clean
 end
 
+-- Recipes ---------------------------------------------------------------------------------
+-- One row, 'Recipes:settings', holds every edited recipe:
+--   data = { recipes = { [id] = { give = { { item, amount, keep? } } } } }
+-- The recipes themselves come from Config (shared/recipes.lua) and can't be created or deleted here,
+-- only their list of required items changes. A recipe with no entry keeps the list from the config.
+
+local function recipesDefaults()
+    return { recipes = {} }
+end
+
+-- A list of required items from the creator -> the clean list, or nil and a message.
+local function cleanGive(list)
+    if type(list) ~= 'table' then return nil, 'Invalid item list.' end
+    local clean, seen = {}, {}
+    for _, entry in ipairs(list) do
+        if #clean >= maxRecipeItems then return nil, 'Too many items in one recipe.' end
+        local item = type(entry) == 'table' and trim(entry.item, 64)
+        if not item or not item:match('^[%w_%-%.]+$') then return nil, 'Invalid item name.' end
+        if seen[item] then return nil, ('%s is in the recipe twice.'):format(item) end
+        seen[item] = true
+
+        local amount = inRange(entry.amount, 1, maxRecipeAmount)
+        if not amount then
+            return nil, ('The amount for %s must be between 1 and %d.'):format(item, maxRecipeAmount)
+        end
+        clean[#clean + 1] = { item = item, amount = math.floor(amount), keep = entry.keep == true or nil }
+    end
+    return clean
+end
+
+-- Unknown recipe ids are skipped, so a recipe removed from the config never breaks the stored row.
+local function cleanRecipeData(data)
+    if type(data) ~= 'table' then return nil, 'Invalid data.' end
+    local clean = recipesDefaults()
+    for id, entry in pairs(type(data.recipes) == 'table' and data.recipes or {}) do
+        if recipeInfo[id] and type(entry) == 'table' then
+            local give, giveErr = cleanGive(entry.give)
+            if not give then return nil, giveErr end
+            clean.recipes[id] = { give = give }
+        end
+    end
+    return clean
+end
+
 local cleanCuttingData = textCleaner(cuttingDefaults)
 local cleanBaggingData = textCleaner(baggingDefaults)
 
@@ -761,6 +808,7 @@ local cleanBaggingData = textCleaner(baggingDefaults)
 --   cleanLocations validates locations coming from the creator (nil = locations can't be edited)
 --   readLocations  turns the stored locations text into what the creator shows
 --   fixedLocations when set, this is always what gets stored, whatever the creator sends
+--   afterSave      when set, runs on the server with the clean data after every successful save
 --   seedLocations  when set, the row is created with this on start if it doesn't exist yet
 --
 -- Shared shapes, so a new event is one line:
@@ -792,6 +840,13 @@ local EVENT_TYPES = {
         cleanData = cleanCornerData,
         fixedLocations = noLocations,
         readLocations = noLocations,
+    },
+    [recipesStep] = {
+        defaults = recipesDefaults,
+        cleanData = cleanRecipeData,
+        fixedLocations = noLocations,
+        readLocations = noLocations,
+        afterSave = function(data) applyRecipes(data.recipes) end,
     },
     ['Cocaine:lab'] = labEvent(),
     ['Meth:tele'] = labEvent(noLocations),
@@ -875,30 +930,29 @@ local function validStep(step)
     return type(step) == 'string' and EVENT_TYPES[step] ~= nil
 end
 
+-- Steps that run a recipe (defaultRecipes) keep the one the creator picked in data.recipe.
+-- A missing or unknown id falls back to the step's default.
+local function withRecipe(step, data, chosen)
+    local default = defaultRecipes[step]
+    if default then data.recipe = recipeInfo[chosen] and chosen or default end
+    return data
+end
+
 local function getEvent(step)
     local kind = EVENT_TYPES[step]
     local rows = QB.sql.query('SELECT * FROM `qbdrugs` WHERE `step` = ? LIMIT 1', { step })
     local row = rows and rows[1]
     if not row then
-        return { data = kind.defaults(), locations = kind.readLocations(nil) }, false
+        return { data = withRecipe(step, kind.defaults()), locations = kind.readLocations(nil) }, false
     end
     -- a stored row that no longer validates falls back to the defaults
-    local data = kind.cleanData(decode(row.data, {})) or kind.defaults()
+    local stored = decode(row.data, {})
+    local data = withRecipe(step, kind.cleanData(stored) or kind.defaults(), stored.recipe)
     return { data = data, locations = kind.readLocations(row.locations) }, true
 end
 
-QB.callback.register('qbdrugs:creator:event:get', function(src, step)
-    local allowed, err = adminOnly(src)
-    if not allowed then return false, err end
-    if not validStep(step) then return fail('Unknown event.') end
-
-    local event = getEvent(step)
-    return { step = step, data = event.data, locations = event.locations }
-end)
-
-QB.callback.register('qbdrugs:creator:event:save', function(src, step, patch)
-    local allowed, err = adminOnly(src)
-    if not allowed then return false, err end
+-- Validates and stores one event row, then tells everything that cares. Returns the saved entry, or false and a message.
+local function saveEvent(step, patch)
     if not validStep(step) then return fail('Unknown event.') end
     if type(patch) ~= 'table' then return fail('Nothing to save.') end
 
@@ -910,6 +964,7 @@ QB.callback.register('qbdrugs:creator:event:save', function(src, step, patch)
         local dataErr
         data, dataErr = kind.cleanData(patch.data)
         if not data then return fail(dataErr) end
+        withRecipe(step, data, patch.data.recipe)
     end
     if kind.fixedLocations then
         locations = kind.fixedLocations()
@@ -937,7 +992,28 @@ QB.callback.register('qbdrugs:creator:event:save', function(src, step, patch)
     if not reloaded then
         QB.print.warn(('[qbdrugs] creator could not reload events: %s'):format(tostring(reloadErr)))
     end
+    if kind.afterSave then kind.afterSave(data) end
     return { step = step, data = data, locations = locations }
+end
+
+-- Same as QB.callback.register, but only admins get in.
+local function adminCallback(name, handler)
+    QB.callback.register(name, function(src, ...)
+        local allowed, err = adminOnly(src)
+        if not allowed then return false, err end
+        return handler(src, ...)
+    end)
+end
+
+adminCallback('qbdrugs:creator:event:get', function(_, step)
+    if not validStep(step) then return fail('Unknown event.') end
+
+    local event = getEvent(step)
+    return { step = step, data = event.data, locations = event.locations }
+end)
+
+adminCallback('qbdrugs:creator:event:save', function(_, step, patch)
+    return saveEvent(step, patch)
 end)
 
 -- Cornerselling item picker -----------------------------------------------------------------
@@ -960,39 +1036,24 @@ local function itemImage(info)
     return type(info.image) == 'string' and info.image ~= '' and ('nui://qbinventory/images/' .. info.image) or nil
 end
 
--- The stored settings plus the label and image of every priced item.
-QB.callback.register('qbdrugs:creator:corner:get', function(src)
-    local allowed, err = adminOnly(src)
-    if not allowed then return false, err end
+-- { label, image } for one item name, or nil when the server doesn't know it.
+local function itemEntry(shared, name)
+    local info = shared[name]
+    if type(info) ~= 'table' then return nil end
+    return { label = tostring(info.label or name), image = itemImage(info) }
+end
 
-    local event = getEvent(CORNER_STEP)
-    local shared, items = allItems(), {}
-    for name in pairs(event.data.pricing or {}) do
-        local info = shared[name]
-        if type(info) == 'table' then
-            items[name] = { label = tostring(info.label or name), image = itemImage(info) }
-        end
-    end
-    return { step = CORNER_STEP, data = event.data, items = items }
-end)
-
--- Items whose name or label contains `query`, best first, with a flag for the ones already priced.
-QB.callback.register('qbdrugs:creator:corner:search', function(src, query)
-    local allowed, err = adminOnly(src)
-    if not allowed then return false, err end
-
+-- Items whose name or label contains `query`, best first. isAdded(name) marks the ones already in the list.
+local function searchItems(query, isAdded)
     query = trim(query, 64)
     if not query then return fail('Type part of an item name or label to search.') end
     local needle = query:lower()
 
-    local priced = getEvent(CORNER_STEP).data.pricing or {}
-    local results = {}
-    for name, info in pairs(allItems()) do
-        if type(name) == 'string' and type(info) == 'table' then
-            local label = tostring(info.label or name)
-            if name:lower():find(needle, 1, true) or label:lower():find(needle, 1, true) then
-                results[#results + 1] = { name = name, label = label, image = itemImage(info), added = priced[name] ~= nil }
-            end
+    local shared, results = allItems(), {}
+    for name in pairs(shared) do
+        local entry = type(name) == 'string' and itemEntry(shared, name)
+        if entry and (name:lower():find(needle, 1, true) or entry.label:lower():find(needle, 1, true)) then
+            results[#results + 1] = { name = name, label = entry.label, image = entry.image, added = isAdded(name) == true }
         end
     end
 
@@ -1005,11 +1066,92 @@ QB.callback.register('qbdrugs:creator:corner:search', function(src, query)
     local total = #results
     while #results > MAX_ITEM_RESULTS do results[#results] = nil end
     return { results = results, total = total }
+end
+
+-- The stored settings plus the label and image of every priced item.
+adminCallback('qbdrugs:creator:corner:get', function()
+    local event = getEvent(CORNER_STEP)
+    local shared, items = allItems(), {}
+    for name in pairs(event.data.pricing or {}) do
+        items[name] = itemEntry(shared, name)
+    end
+    return { step = CORNER_STEP, data = event.data, items = items }
 end)
 
--- Events with a fixed position (cutting, bagging) or a starting position (the meth stations, Meth:tele,
--- the weed stations) get their row created on start, so they work without anyone opening the creator.
--- An existing row is never touched, except a station row with no position yet: that one is filled once.
+adminCallback('qbdrugs:creator:corner:search', function(_, query)
+    local priced = getEvent(CORNER_STEP).data.pricing or {}
+    return searchItems(query, function(name) return priced[name] ~= nil end)
+end)
+
+-- Recipe picker -----------------------------------------------------------------------------
+-- Edits go through saveEvent ('Recipes:settings'); these callbacks add the list, the item search and the
+-- one-recipe save the picker needs.
+
+-- The list of required items a recipe uses right now: the saved one, or the config's.
+local function effectiveGive(saved, id)
+    local entry = saved[id]
+    return entry and entry.give or copyGive(recipeInfo[id].defaultGive)
+end
+
+-- Every recipe with its current required items, plus the label and image of every item it mentions.
+local function recipesPayload()
+    local saved = getEvent(recipesStep).data.recipes or {}
+    local shared, list, items = allItems(), {}, {}
+
+    local function track(name)
+        if not items[name] then items[name] = itemEntry(shared, name) end
+    end
+
+    for _, id in ipairs(recipeIds) do
+        local info = recipeInfo[id]
+        local receive = info.recipe.receive
+        local makes = receive and receive.item and { item = receive.item, amount = receive.amount or 1 } or nil
+        local give = effectiveGive(saved, id)
+
+        if makes then track(makes.item) end
+        for _, entry in ipairs(give) do track(entry.item) end
+        list[#list + 1] = { id = id, label = info.label, receive = makes, give = give, edited = saved[id] ~= nil }
+    end
+    return { list = list, items = items }
+end
+
+adminCallback('qbdrugs:creator:recipes:get', recipesPayload)
+
+adminCallback('qbdrugs:creator:recipes:search', function(_, query, id)
+    if not recipeInfo[id] then return fail('Unknown recipe.') end
+
+    local inRecipe = {}
+    for _, entry in ipairs(effectiveGive(getEvent(recipesStep).data.recipes or {}, id)) do
+        inRecipe[entry.item] = true
+    end
+    return searchItems(query, function(name) return inRecipe[name] == true end)
+end)
+
+-- Replaces the required items of one recipe. The creator sends the whole new list.
+adminCallback('qbdrugs:creator:recipes:set', function(_, id, give)
+    if not recipeInfo[id] then return fail('Unknown recipe.') end
+
+    local clean, cleanErr = cleanGive(give)
+    if not clean then return fail(cleanErr) end
+
+    local data = getEvent(recipesStep).data
+    data.recipes = data.recipes or {}
+
+    -- items that were already in the recipe are kept as they are; new ones must exist
+    local current = {}
+    for _, entry in ipairs(effectiveGive(data.recipes, id)) do current[entry.item] = true end
+    for _, entry in ipairs(clean) do
+        if not current[entry.item] and not itemExists(entry.item) then
+            return fail(('%s does not exist.'):format(entry.item))
+        end
+    end
+
+    data.recipes[id] = { give = clean }
+    local saved, saveErr = saveEvent(recipesStep, { data = data })
+    if not saved then return fail(saveErr) end
+    return recipesPayload()
+end)
+
 CreateThread(function()
     Wait(1000) -- let events.lua publish first; ReloadEvents below then pushes the new rows
     while GetResourceState('qbsql') ~= 'started' do Wait(500) end

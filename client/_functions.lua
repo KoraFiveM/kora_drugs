@@ -1,3 +1,8 @@
+-- fxmanifest lists this file and then globs client/**.lua, so it loads twice.
+-- Without this every OnDrugs listener below registers twice (two targets per location).
+if qbdrugsFunctionsLoaded then return end
+qbdrugsFunctionsLoaded = true
+
 local Busy = false
 
 local function getItemLabel(item)
@@ -104,20 +109,34 @@ function inGang(gang)
     return player and player.gang and player.gang.name == gang or false
 end
 
-function progressTrigger(recipe, data, event, index)
+-- Runs one entry of craftSteps: checks, progressbar (or the step's own run hook), then the
+-- single server event. The server looks the recipe up again from drug + step.
+function craftTrigger(drug, step, data, location, key)
+    local name = drug .. ':' .. step
+    local info = craftSteps[name]
+    local hook = stepHooks[name] or {}
+    local recipe = stepRecipe(name, data)
+
     if Busy then return end
-    if not itemCheck(recipe) then return end
+    if recipe and not itemCheck(recipe) then return end
+    if hook.check and not hook.check() then return end
+
     Busy = true
-    local progress = QB.progressbar.start({
-        label = data.progress.label,
-        duration =  data.progress.time or DefaultProgress.time,
-        disable =  data.progress.disable or DefaultProgress.disable,
-        anim =  data.anim or DefaultProgress.anim
-    })
-    if progress then
-        TriggerServerEvent(event, index)
+    local done
+    if hook.run then
+        done = hook.run(data, location)
+    else
+        local progress = data.progress or {}
+        done = QB.progressbar.start({
+            label = progress.label or (info.locale and QB.lang(info.locale .. '.progress')) or '',
+            duration = progress.time or DefaultProgress.time,
+            disable = progress.disable or DefaultProgress.disable,
+            anim = data.anim or DefaultProgress.anim,
+        })
     end
     Busy = false
+
+    if done then TriggerServerEvent('qbdrugs:server:craft', drug, step, key) end
 end
 
 function createBox(coords, rotation, options)
@@ -186,3 +205,69 @@ function LabTeleport(name, locale)
             end)
     end
 end
+
+-- One zone builder for every step in craftSteps. Locations are either a list (powder, cook,
+-- drying...) or a single object (cutting, bagging); both end up with a key for the server.
+local craftZones = {}
+
+local function clearCraft(name)
+    local zones = craftZones[name]
+    if zones then
+        for _, id in ipairs(zones.boxes) do
+            pcall(function() exports.qbtarget:removeZone(id) end)
+        end
+        for _, object in ipairs(zones.objects) do
+            pcall(function() QB.entities.remove(object) end)
+        end
+    end
+    craftZones[name] = { boxes = {}, objects = {} }
+end
+
+local function buildCraft(drug, step)
+    local name = drug .. ':' .. step
+    local locale = craftSteps[name].locale
+
+    return function(entry)
+        clearCraft(name)
+        if not entry or type(entry.locations) ~= 'table' then return end
+
+        local data = entry.data or {}
+        local zones = craftZones[name]
+        local list = entry.locations.coords and { entry.locations } or entry.locations
+
+        for key, location in ipairs(list) do
+            local c = location.coords
+            if c then
+                local options = {
+                    {
+                        label = data.targetLabel or (locale and QB.lang(locale .. '.target')),
+                        icon = data.targetIcon or (locale and QB.lang(locale .. '.icon')),
+                        onSelect = function()
+                            craftTrigger(drug, step, data, location, key)
+                        end,
+                        canInteract = function()
+                            return not Busy and inGang(location.gang)
+                        end,
+                    },
+                }
+                if location.object then
+                    zones.objects[#zones.objects + 1] = createObject(location.object, vector4(c.x, c.y, c.z, c.w or 0.0), 0, options)
+                else
+                    zones.boxes[#zones.boxes + 1] = createBox(vector3(c.x, c.y, c.z), 0, options)
+                end
+            end
+        end
+    end
+end
+
+for name in pairs(craftSteps) do
+    local drug, step = name:match('^(%w+):([%w_]+)$')
+    if not (Config[drug] and Config[drug].disabled) then
+        OnDrugs(drug, step, buildCraft(drug, step))
+    end
+end
+
+AddEventHandler('onResourceStop', function(res)
+    if res ~= GetCurrentResourceName() then return end
+    for name in pairs(craftZones) do clearCraft(name) end
+end)

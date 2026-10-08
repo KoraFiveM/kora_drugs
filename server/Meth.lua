@@ -22,6 +22,12 @@ local function newCookState()
 	}
 end
 
+-- The recipe picked for a station on the creator's events page; the config one if none.
+local function stationRecipe(name, fallback)
+	local entry = Drugs.Meth and Drugs.Meth[name]
+	return stepRecipe('Meth:' .. name, entry and entry.data) or fallback
+end
+
 local function resetCook(source)
 	cooking[source] = nil
 end
@@ -51,7 +57,7 @@ QB.callback.register('qb-drugs:server:startCook', function(source)
 	if not withinRange(source, stationCoords('pour')) then
 		return false, "Player is too far from the heat source"
 	end
-	if not craft(source, config.cook_recipe) then
+	if not craft(source, stationRecipe('pour', config.cook_recipe)) then
 		return false, "Missing ingredients"
 	end
 
@@ -117,7 +123,7 @@ RegisterNetEvent('qb-drugs:server:getMeth', function()
 	if not elapsedSince(session, 'smashedAt', minStageGap.toBag) then return end
 	if not withinRange(src, stationCoords('bag')) then return end
     if os.time() < session.minTime then return end
-	craft(src, Config.Meth.bag_recipe)
+	craft(src, stationRecipe('bag', config.bag_recipe))
 	resetCook(src)
 end)
 

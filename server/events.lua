@@ -38,6 +38,11 @@
 --   data      { maxSell, ripOff, minPolice, weedPercentAdjustable, weedPercentFlow, pricing = { [item] = cash } }
 --   locations []
 --
+-- Row layout for 'Recipes:settings' (Drugs.Recipes.settings):
+--   data      { recipes = { ['Cocaine:powdering'] = { give = { { item, amount, keep? } } }, ... } }
+--   locations []
+--   Only recipes that were edited have an entry; the rest keep the list from shared/config.lua.
+--
 -- Steps that always exist in Drugs, even before their row does, so callers never
 -- have to nil-check Drugs.Cocaine.lab.
 EventSteps = {
@@ -60,6 +65,7 @@ EventSteps = {
     'Weed:breakNugs',
     'Weed:bagWeed',
     'CornerSelling:settings',
+    'Recipes:settings',
 }
 
 Drugs = {}

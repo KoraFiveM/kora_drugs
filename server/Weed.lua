@@ -42,7 +42,7 @@ local function getWeedData()
     return {
         strain = strains[classification][item],
         classification = classification,
-        weight = math.random(10, 28) .. 'g',
+        grams = math.random(10, 28) .. 'g',
         thc = math.random(Config.Weed.percents.thc.min, Config.Weed.percents.thc.max) .. '%',
         cbd = math.random(Config.Weed.percents.cbd.min, Config.Weed.percents.cbd.max) .. '%'
     }
@@ -55,100 +55,44 @@ local function getNumberFromWeight(weight)
     return tonumber(weight:match("(%d+)"))
 end
 
-local timeout = {}
+stepHooks['Weed:drying'] = { meta = getWeedData }
 
-local function onCooldown(src)
-    if timeout[src] then
-        return true
-    end
-    timeout[src] = true
-    CreateThread(function()
-        Wait(5000)
-        timeout[src] = nil
-    end)
-    return false
-end
+stepHooks['Weed:breakNugs'] = {
+    handler = function(src)
+        local item = Inventory:GetItemByName(src, 'dried_cola')
+        if not item then return end
 
-local function checkDistance(src, coords, distance)
-    return QB.distance.player(src, coords, distance)
-end
+        local itemName = labelToItem[item.info.strain]
+        local weight = getNumberFromWeight(item.info.grams)
+        if not (itemName and weight) then return end
 
--- The client sends the index of the location it used. It is looked up in Drugs.Weed.<step>
--- so the distance check is against a position the creator actually saved.
-local function spotCoords(step, id)
-    local entry = Drugs.Weed and Drugs.Weed[step]
-    local location = entry and type(id) == 'number' and entry.locations[id]
-    local c = location and location.coords
-    if not c then return nil end
-    return vec3(c.x, c.y, c.z)
-end
-
-local function verify(src, step, id)
-    local coords = spotCoords(step, id)
-    if not coords then
-        return false
-    end
-    if onCooldown(src) then
-        return false
-    end
-    return checkDistance(src, coords, 5.0)
-end
-
-RegisterNetEvent('qb-drugs:server:dryCola', function(id)
-    local src = source
-    assert(QB.distance.player(src, Drugs.Weed.drying.locations[id].coords, 5.0), "Player is not in the correct location or on cooldown")
-    if craft(src, Step.drying.recipe, getWeedData()) and Step.drying.successNotify then
-        QB.notify.send(src, Step.drying.successNotify)
-    end
-end)
-
-RegisterNetEvent('qb-drugs:server:breakNugs', function(id)
-    local src = source
-    assert(QB.distance.player(src, Drugs.Weed.breakNugs.locations[id].coords, 5.0), "Player is not in the correct location or on cooldown")
-    local item = Inventory:GetItemByName(src, 'dried_cola')
-    if not item then
-        return
-    end
-
-    local itemName = labelToItem[item.info.strain]
-    local weight = getNumberFromWeight(item.info.weight)
-    if not (itemName and weight) then
-        return
-    end
-
-    local info = { cbd = item.info.cbd, thc = item.info.thc }
-    if Inventory:RemoveItem(src, 'dried_cola', 1, item.slot) then
-        Inventory:AddItem(src, itemName, weight, nil, info)
-    end
-end)
-
-RegisterNetEvent('qb-drugs:server:bagWeed', function(id)
-    local src = source
-    assert(QB.distance.player(src, Drugs.Weed.bagWeed.locations[id].coords, 5.0), "Player is not in the correct location or on cooldown")
-
-    local hasItem
-    for i = 1, #allItems do
-        hasItem = Inventory:GetItemByName(src, allItems[i])
-        if hasItem then
-            break
+        local info = { cbd = item.info.cbd, thc = item.info.thc }
+        if Inventory:RemoveItem(src, 'dried_cola', 1, item.slot) then
+            Inventory:AddItem(src, itemName, weight, nil, info)
         end
-    end
-    if not hasItem then
-        return
-    end
+    end,
+}
 
-    local receive = { item = bagged[hasItem.name], amount = hasItem.amount }
-    local give = {
-        { item = hasItem.name, amount = hasItem.amount },
-        { item = 'gram_bag', amount = hasItem.amount }
-    }
-
-    if craft(src, { receive = receive, give = give }, { cbd = hasItem.info.cbd, thc = hasItem.info.thc }) then
-        if Step.bagWeed.successNotify then
-            QB.notify.send(src, Step.bagWeed.successNotify)
+stepHooks['Weed:bagWeed'] = {
+    handler = function(src)
+        local hasItem
+        for i = 1, #allItems do
+            hasItem = Inventory:GetItemByName(src, allItems[i])
+            if hasItem then break end
         end
-    end
-end)
+        if not hasItem then return end
+
+        local receive = { item = bagged[hasItem.name], amount = hasItem.amount }
+        local give = {
+            { item = hasItem.name, amount = hasItem.amount },
+            { item = 'gram_bag', amount = hasItem.amount }
+        }
+        if craft(src, { receive = receive, give = give }, { cbd = hasItem.info.cbd, thc = hasItem.info.thc }) then
+            local notify = Step.bagWeed and Step.bagWeed.successNotify
+            if notify then QB.notify.send(src, notify) end
+        end
+    end,
+}
 
 local jointItem = {
     blue_dream_weed = 'blue_dream_joint',
@@ -167,7 +111,7 @@ exports.qbcore:createUseable('rolling_paper', function(source, item)
             break
         end
     end
-    if not hasItem then return end
+    if not hasItem then QB.notify.send(src, {title = 'qb-drugs', message = 'You need a weed item to roll', type = 'error'}) return end
     local finished = QB.callback.trigger(src, 'qb-drugs:client:rolling')
     if not finished then return end
     if Inventory:RemoveItem(src, hasItem.name, 1, hasItem.slot) and Inventory:RemoveItem(src, 'rolling_paper', 1, item.slot) then

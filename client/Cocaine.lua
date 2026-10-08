@@ -18,12 +18,7 @@ local function setStage()
 end
 
 setStage()
-local cuttingcoke = false
-local baggingcoke = false
-
 local function cutCoke(coords, offset, rotation)
-    cuttingcoke = true
-
     local animDict, animName = "anim@amb@business@coc@coc_unpack_cut_left@", "coke_cut_v5_coccutter"
     QB.stream.loadAnimDict(animDict)
 
@@ -73,11 +68,9 @@ local function cutCoke(coords, offset, rotation)
     end
     RemoveAnimDict(animDict)
     FreezeEntityPosition(ped, false)
-    cuttingcoke = false
 end
 
 local function bagCoke(coords, offset, rotation)
-baggingcoke = true
     local ver = ""
 	local animDict, animName = "anim@amb@business@meth@meth_smash_weight_check@", "break_weigh_"..ver.."char01"
 	QB.stream.loadAnimDict(animDict)
@@ -132,118 +125,19 @@ baggingcoke = true
     end
     RemoveAnimDict(animDict)
     FreezeEntityPosition(ped, false)
-	baggingcoke = false
 end
-local powderZones, cuttingZones, baggingZones = {}, {}, {}
+stepHooks['Cocaine:cutting'] = {
+    run = function(_, location)
+        cutCoke(location.coords, location.offset, location.rotation)
+        return true
+    end,
+}
 
-local function clearPowderZones()
-    for _, id in ipairs(powderZones) do
-        pcall(function() exports.qbtarget:removeZone(id) end)
-    end
-    powderZones = {}
-end
-
-local function clearCuttingZones()
-    for id, d in ipairs(cuttingZones) do
-        pcall(function() exports.qbtarget:removeZone(d) end)
-    end
-    cuttingZones = {}
-end
-
-local function clearBaggingZones()
-    for id, d in ipairs(baggingZones) do
-        pcall(function() exports.qbtarget:removeZone(d) end)
-    end
-    baggingZones = {}
-end
-
-
-local function buildPowder(entry)
-    clearPowderZones()
-    local recipe = Config.Cocaine.steps.powdering.recipe
-    local powData = entry.data
-    for key, data in ipairs(entry.locations) do
-        powderZones[#powderZones + 1] = exports.qbtarget:addBoxZone({
-            coords = vector3(data.coords.x, data.coords.y, data.coords.z),
-            size = vector3(2, 2, 2),
-            options = {
-                {
-                    label = entry.data.targetLabel or QB.lang('Cocaine.powder.target'),
-                    icon = QB.lang('Cocaine.powder.icon'),
-                    onSelect = function()
-                        progressTrigger(recipe, powData, 'qb-drugs:server:powderCocaine', key)
-                    end,
-                }
-            }
-        })
-    end
-end
-
-local function buildCutCoke(entry)
-    clearCuttingZones()
-    if not entry or not entry.locations or not entry.locations.coords then return end
-    local data = entry.locations
-    local targ = entry.data
-    cuttingZones[#cuttingZones + 1] = exports.qbtarget:addBoxZone({
-        coords = entry.locations.coords,
-        size = vector3(1.5, 1.5, 1.5),
-        rotation = 180.0,
-        distance = 2.0,
-        options = {
-            {
-                label = targ.targetLabel or QB.lang('Cocaine.cut.target'),
-                icon = targ.targetIcon or QB.lang('Cocaine.cut.icon'),
-                onSelect = function()
-                    if cuttingcoke or baggingcoke then return end
-                    if not itemCheck(Config.Cocaine.steps.cutting.recipe) then return end
-                    cutCoke(data.coords, data.offset, data.rotation)
-                    TriggerServerEvent('qb-drugs:server:cutCocaine')
-                end,
-                canInteract = function()
-                    local isCut, isBag = cuttingcoke, baggingcoke
-                    if isCut or isBag then
-                        return false
-                    end
-                    return true
-                end
-            }
-        },
-    })
-end
-
-local function buildBagCoke(entry)
-    clearBaggingZones()
-    if not entry or not entry.locations or not entry.locations.coords then return end
-    local data = entry.locations
-    local targ = entry.data
-    baggingZones[#baggingZones + 1] = exports.qbtarget:addBoxZone({
-        coords = data.coords,
-        size = vector3(1.5, 1.5, 1.5),
-        rotation = 180.0,
-        distance = 2.0,
-        options = {
-            {
-                label = targ.targetLabel or QB.lang('Cocaine.bag.target'),
-                icon = targ.targetIcon or QB.lang('Cocaine.bag.icon'),
-                onSelect = function()
-                    if cuttingcoke or baggingcoke then return end
-                    if not itemCheck(Config.Cocaine.steps.bagging.recipe) then return end
-                    bagCoke(data.coords, data.offset, data.rotation)
-                    TriggerServerEvent('qb-drugs:server:bagCocaine')
-                end,
-                canInteract = function()
-                    local isBag, isCut = baggingcoke, cuttingcoke
-                    if isBag or isCut then
-                        return false
-                    end
-                    return true
-                end
-            }
-        },
-    })
-end
+stepHooks['Cocaine:bagging'] = {
+    run = function(_, location)
+        bagCoke(location.coords, location.offset, location.rotation)
+        return true
+    end,
+}
 
 OnDrugs('Cocaine', 'lab', LabTeleport('cocaine', 'Cocaine'))
-OnDrugs('Cocaine', 'powder', buildPowder)
-OnDrugs('Cocaine', 'cutting', buildCutCoke)
-OnDrugs('Cocaine', 'bagging', buildBagCoke)

@@ -91,3 +91,4 @@ function RegisterLabTeleport(name, drug, step)
         buckets[source] = nil
     end)
 end
+RegisterLabTeleport('cocaine', 'Cocaine', 'lab')
