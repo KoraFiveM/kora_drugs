@@ -69,7 +69,6 @@ Config = {
         },
         plantTbl = {},
         steps = {
-        -- The weed lab entrances and exit live in the `qbdrugs` table ('Weed:lab') and are edited in the creator.
             drying = {
                 recipe = {
                     receive = {item = 'dried_cola', amount = 1},
@@ -83,8 +82,6 @@ Config = {
     Crack = {
         steps = {
             cook = {
-                prop = 'v_ret_ml_tablea',
-                coords = vector4(30.02, 3664.79, 40.20, 241.54),
                 recipe = {
                     receive = {item = 'crack_rock', amount = 1},
                     give = {
@@ -94,8 +91,6 @@ Config = {
                 }
             },
             bagging = {
-                prop = 'v_ret_ml_tablec',
-                coords = vector4(24.8, 3662.6, 39.8, 241.27),
                 recipe = {
                     receive = {item = 'crack_bag', amount = 1},
                     give = {
@@ -117,11 +112,8 @@ Config = {
         },
         bag_recipe = {
             receive = {item = 'meth_bag', amount = 5},
-            give = {} -- reason nothing to give back, all ingredients are consumed in cook_recipe to ensure you dont get to the end without having completed the cookbook
+            give = {}
         },
-        -- Where the lab door, the exit and the Pour / Heat / Smash / Bag stations are (coords, offset, rotation,
-        -- size, bucket) lives in the `qbdrugs` table and is edited in the creator (Events > Meth ...).
-        -- Nothing about Meth positions is read from this file.
     }
 }
 

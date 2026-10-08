@@ -290,7 +290,9 @@ end)
 --   Cocaine:cutting  locations = { coords, offset, rotation }  (one object, fixed, never edited)
 --   Cocaine:bagging  same layout as cutting
 --   Meth:tele        same layout as Cocaine:lab (many entrances, one exit)
---   Meth:pour/heat/smash/bag   target text only, locations = []
+--   Meth:pour/heat/smash/bag   data = target text; locations = { coords, offset, rotation, ... } (one object, edited in the creator)
+--                              pour { coords, offset, rotation }   heat { coords, explosion }
+--                              smash { coords, offset, rotation, size, bucket }   bag { coords, offset, rotation, size }
 --   Weed:lab         same layout as Cocaine:lab (many entrances, one exit)
 --   Weed:drying, Weed:breakNugs, Weed:bagWeed   same layout as powder
 --
@@ -542,30 +544,6 @@ local methHeatDefaults = textDefaults({ targetLabel = 'Heat Chemicals', targetIc
 local methSmashDefaults = textDefaults({ targetLabel = 'Smash Meth', targetIcon = 'fa-solid fa-hammer' })
 local methBagDefaults = textDefaults({ targetLabel = 'Bag Meth', targetIcon = 'fa-solid fa-bag-shopping' })
 
--- The meth lab's current entrance and exit, used to create the first row.
-local function methTeleSeed()
-    local tele = Config and Config.Meth and Config.Meth.Steps and Config.Meth.Steps.Tele
-    if not (tele and tele.outside and tele.inside) then return {} end
-    return {
-        {
-            enter = { x = tele.outside.x, y = tele.outside.y, z = tele.outside.z },
-            exit = { x = tele.inside.x, y = tele.inside.y, z = tele.inside.z },
-        },
-    }
-end
-
--- The weed lab's current entrance and exit, used to create the first row.
-local function weedLabSeed()
-    local steps = Config and Config.Weed and Config.Weed.steps
-    if not (steps and steps.enterLab and steps.exitLab) then return {} end
-    return {
-        {
-            enter = { x = steps.enterLab.x, y = steps.enterLab.y, z = steps.enterLab.z },
-            exit = { x = steps.exitLab.x, y = steps.exitLab.y, z = steps.exitLab.z },
-        },
-    }
-end
-
 -- A weed station's current position (steps.drying / breakNugs / bagWeed), used to create the first row.
 local function weedPointSeed(step)
     return function()
@@ -577,6 +555,131 @@ local function weedPointSeed(step)
 end
 
 local function noLocations() return {} end
+
+-- Meth stations ---------------------------------------------------------------------------
+-- 'Meth:pour', 'Meth:heat', 'Meth:smash' and 'Meth:bag' keep their target text in data and where the
+-- station is in locations: one object, like Cocaine:cutting.
+--   pour  { coords, offset, rotation }          heat  { coords, explosion }
+--   smash { coords, offset, rotation, size, bucket = {x,y,z,w} }     bag { coords, offset, rotation, size }
+-- The values below are only the starting point: they create the row the first time (or fill a row that has
+-- no position yet). After that the row, edited in the creator, is the only source.
+
+local METH_STATION_PARTS = {
+    pour = { 'coords', 'offset', 'rotation' },
+    heat = { 'coords', 'explosion' },
+    smash = { 'coords', 'offset', 'rotation', 'size', 'bucket' },
+    bag = { 'coords', 'offset', 'rotation', 'size' },
+}
+
+local function methStationLocation(name)
+    if name == 'pour' then
+        return {
+            coords = { x = 1006.09, y = -3200.59, z = -38.52 },
+            offset = { x = 4.79, y = 2.13, z = -0.41 },
+            rotation = { x = 0.0, y = 0.0, z = 0.0 },
+        }
+    elseif name == 'heat' then
+        return {
+            coords = { x = 1007.89, y = -3201.17, z = -38.99 },
+            explosion = true,
+        }
+    elseif name == 'smash' then
+        return {
+            coords = { x = 1012.04, y = -3194.96, z = -38.99 },
+            bucket = { x = 1012.86, y = -3194.13, z = -39.20, w = 90.0 },
+            size = { x = 1.0, y = 1.0, z = 2.0 },
+            offset = { x = -3.143311, y = -1.666748, z = -1.010128 },
+            rotation = { x = 0.0, y = 0.0, z = 0.0 },
+        }
+    end
+    return {
+        coords = { x = 1014.25, y = -3194.93, z = -38.99 },
+        size = { x = 1.0, y = 1.0, z = 2.0 },
+        offset = { x = -4.9, y = -1.70, z = -1.01 },
+        rotation = { x = 0.0, y = 0.0, z = 0.0 },
+    }
+end
+
+-- x, y, z each within +-limit, or nil.
+local function limitedVec(value, limit)
+    if type(value) ~= 'table' then return nil end
+    local x, y, z = inRange(value.x, -limit, limit), inRange(value.y, -limit, limit), inRange(value.z, -limit, limit)
+    if not (x and y and z) then return nil end
+    return { x = x, y = y, z = z }
+end
+
+local methStationRules = {
+    coords = { message = 'The position needs x, y and z.', required = true, clean = cleanVec },
+    offset = { message = 'The offset needs x, y and z.', clean = function(v) return limitedVec(v, 500.0) end },
+    rotation = { message = 'The rotation needs x, y and z (degrees).', clean = function(v) return limitedVec(v, 720.0) end },
+    size = {
+        message = 'The size needs x, y and z above 0.',
+        clean = function(v)
+            local size = limitedVec(v, 100.0)
+            if size and size.x > 0 and size.y > 0 and size.z > 0 then return size end
+        end,
+    },
+    bucket = {
+        message = 'The bucket needs x, y, z and a heading.',
+        clean = function(v)
+            local bucket = cleanVec(v)
+            local w = type(v) == 'table' and (v.w == nil and 0.0 or inRange(v.w, -720.0, 720.0))
+            if not bucket or not w then return nil end
+            bucket.w = w
+            return bucket
+        end,
+    },
+}
+
+-- Whatever the creator sends, as a clean location. A part that is left out keeps its starting value;
+-- a part that is there but wrong is an error. coords are always required.
+local function cleanMethStation(name)
+    return function(value)
+        if type(value) ~= 'table' then return nil, 'Invalid location.' end
+        local defaults = methStationLocation(name)
+        local clean = {}
+        for _, part in ipairs(METH_STATION_PARTS[name]) do
+            local given = value[part]
+            if part == 'explosion' then
+                if given == nil then
+                    clean.explosion = defaults.explosion == true
+                elseif type(given) == 'boolean' then
+                    clean.explosion = given
+                else
+                    return nil, 'Explosion must be on or off.'
+                end
+            else
+                local rule = methStationRules[part]
+                local result
+                if given == nil and not rule.required then
+                    result = defaults[part]
+                else
+                    result = rule.clean(given)
+                end
+                if not result then return nil, rule.message end
+                clean[part] = result
+            end
+        end
+        return clean
+    end
+end
+
+-- Stored text -> what the creator shows. A row with no usable position yet shows the starting values.
+local function readMethStation(name, raw)
+    local clean = cleanMethStation(name)(decode(raw, {}))
+    return clean or methStationLocation(name)
+end
+
+local function methStationEvent(name, defaultsFn)
+    return {
+        defaults = defaultsFn,
+        cleanData = textCleaner(defaultsFn),
+        cleanLocations = cleanMethStation(name),
+        readLocations = function(raw) return readMethStation(name, raw) end,
+        seedLocations = function() return methStationLocation(name) end,
+        fillLocations = true, -- an existing row with no position yet (the old text-only rows) gets one
+    }
+end
 
 -- Cornerselling ---------------------------------------------------------------------------
 -- One row, 'CornerSelling:settings', holds every cornerselling value:
@@ -691,12 +794,12 @@ local EVENT_TYPES = {
         readLocations = noLocations,
     },
     ['Cocaine:lab'] = labEvent(),
-    ['Meth:tele'] = labEvent(methTeleSeed),
-    ['Meth:pour'] = textEvent(methPourDefaults),
-    ['Meth:heat'] = textEvent(methHeatDefaults),
-    ['Meth:smash'] = textEvent(methSmashDefaults),
-    ['Meth:bag'] = textEvent(methBagDefaults),
-    ['Weed:lab'] = labEvent(weedLabSeed),
+    ['Meth:tele'] = labEvent(noLocations),
+    ['Meth:pour'] = methStationEvent('pour', methPourDefaults),
+    ['Meth:heat'] = methStationEvent('heat', methHeatDefaults),
+    ['Meth:smash'] = methStationEvent('smash', methSmashDefaults),
+    ['Meth:bag'] = methStationEvent('bag', methBagDefaults),
+    ['Weed:lab'] = labEvent(noLocations),
     ['Weed:drying'] = {
         defaults = weedDryingDefaults,
         cleanData = cleanWeedDryingData,
@@ -904,25 +1007,41 @@ QB.callback.register('qbdrugs:creator:corner:search', function(src, query)
     return { results = results, total = total }
 end)
 
--- Events with a fixed position (cutting, bagging, meth steps) or a known first entrance
--- (Meth:tele) get their row created on start, so they work without anyone opening the
--- creator. An existing row is never touched.
+-- Events with a fixed position (cutting, bagging) or a starting position (the meth stations, Meth:tele,
+-- the weed stations) get their row created on start, so they work without anyone opening the creator.
+-- An existing row is never touched, except a station row with no position yet: that one is filled once.
 CreateThread(function()
     Wait(1000) -- let events.lua publish first; ReloadEvents below then pushes the new rows
+    while GetResourceState('qbsql') ~= 'started' do Wait(500) end
+
     for step, kind in pairs(EVENT_TYPES) do
         local initial = kind.fixedLocations or kind.seedLocations
         if initial then
-            local rows = QB.sql.query('SELECT `step` FROM `qbdrugs` WHERE `step` = ? LIMIT 1', { step })
-            if not (rows and rows[1]) then
-                local ok, insertErr = QB.sql.update(
-                    'INSERT INTO `qbdrugs` (`step`, `data`, `locations`) VALUES (?, ?, ?)',
-                    { step, json.encode(kind.defaults()), json.encode(initial()) }
-                )
-                if ok then
-                    QB.print.warn(('[qbdrugs] created default row %s'):format(step))
-                    pcall(function() exports[GetCurrentResourceName()]:ReloadEvents(step) end)
-                else
-                    QB.print.warn(('[qbdrugs] could not create %s: %s'):format(step, tostring(insertErr)))
+            local readOk, rows = pcall(QB.sql.query, 'SELECT * FROM `qbdrugs` WHERE `step` = ? LIMIT 1', { step })
+            if not readOk then
+                QB.print.warn(('[qbdrugs] could not read %s: %s'):format(step, tostring(rows)))
+            else
+                local row = rows and rows[1]
+                local sql, params, what
+
+                if not row then
+                    what = 'created default row'
+                    sql = 'INSERT INTO `qbdrugs` (`step`, `data`, `locations`) VALUES (?, ?, ?)'
+                    params = { step, json.encode(kind.defaults()), json.encode(initial()) }
+                elseif kind.fillLocations and not decode(row.locations, {}).coords then
+                    what = 'filled the position of'
+                    sql = 'UPDATE `qbdrugs` SET `locations` = ? WHERE `step` = ?'
+                    params = { json.encode(initial()), step }
+                end
+
+                if what then
+                    local writeOk, ok, writeErr = pcall(QB.sql.update, sql, params)
+                    if writeOk and ok then
+                        QB.print.warn(('[qbdrugs] %s %s'):format(what, step))
+                        pcall(function() exports[GetCurrentResourceName()]:ReloadEvents(step) end)
+                    else
+                        QB.print.warn(('[qbdrugs] could not write %s: %s'):format(step, tostring(writeOk and writeErr or ok)))
+                    end
                 end
             end
         end
