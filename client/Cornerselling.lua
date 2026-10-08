@@ -20,6 +20,70 @@ local function handShake(initiatorPed, receiverPed, onFinished)
     end)
 end
 
+local OFFER_APP_ID = 'qbdrugs:cornerOffer'
+local offerAccepted = false
+
+QB.nui.registerApp({
+    id = OFFER_APP_ID,
+    title = 'Offer',
+    icon = 'DollarSign',
+    layout = 'compact',
+    width = 480,
+    height = 350,
+    placement = 'right',
+    defaultView = 'offer',
+    navigation = { { id = 'offer', label = 'Offer', icon = 'DollarSign', content = { title = 'Offer', blocks = {} } } },
+    onAction = function(actionId)
+        if actionId == 'offer:accept' then
+            offerAccepted = true
+            return { close = true }
+        end
+        if actionId == 'offer:deny' then
+            offerAccepted = false
+            return { close = true }
+        end
+        return {}
+    end,
+})
+
+local function openOffer(deal)
+    offerAccepted = false
+    local title = 'Corner Selling Offer'
+    QB.nui.updateApp(OFFER_APP_ID, {
+        navigation = {
+            {
+                id = 'offer', label = title, icon = 'DollarSign',
+                content = {
+                    title = title,
+                    blocks = {
+                        {
+                            type = 'list', id = 'offer-card', layout = 'cards', columns = 1,
+                            items = {
+                                {
+                                    id = deal.item,
+                                    label = deal.itemLabel,
+                                    image = deal.img,
+                                    metadata = {
+                                        { label = 'Price', value = ('$%d'):format(math.floor(deal.singlePrice)) },
+                                        { label = 'Amount', value = tostring(deal.amount) },
+                                        { label = 'Total', value = ('$%d'):format(math.floor(deal.total)) }
+                                    },
+                                    actions = {
+                                        { id = 'offer:accept', label = 'Accept', icon = 'Check', variant = 'primary' },
+                                        { id = 'offer:deny', label = 'Deny', icon = 'X', variant = 'destructive' },
+                                    },
+                                },
+                            },
+                        },
+                    },
+                },
+            },
+        },
+    })
+    QB.nui.openApp(OFFER_APP_ID, { viewId = 'offer' })
+    return offerAccepted
+end
+
 local function passChecks(id)
     local isPedHuman = IsPedHuman(id)
     local isPedPlayer = IsPedAPlayer(id)
@@ -47,8 +111,8 @@ local function findBuyer()
     if not drugDeal then
         canSell()
     end
-    if not drugDeal then return end
-    cornerPrompt = QB.textui.show(QB.lang('cornerselling.looking'))
+    if not drugDeal then isSelling = false drugDeal = nil return end
+    cornerPrompt = QB.textui.show('Looking for a buyer...')
     repeat
         Wait(1000)
         local ped = QB.closest.ped(GetEntityCoords(PlayerPedId()), 10.0)
@@ -62,7 +126,7 @@ local function findBuyer()
             end
         end
     until buyer ~= nil or not isSelling
-    QB.textui.update(cornerPrompt, QB.lang('cornerselling.buyerFound'))
+    QB.textui.update(cornerPrompt, 'Buyer found!')
     if not isSelling then endBuyer() return end
     repeat
         Wait(1000)
@@ -70,30 +134,19 @@ local function findBuyer()
     until QB.distance.entity(buyer, 2.0) or not isSelling
     if not isSelling then endBuyer() return end
     TaskTurnPedToFaceEntity(buyer, PlayerPedId(), -1)
-    QB.interact.addEntity(buyer, {
+    exports.qbtarget:addEntity(buyer, {
         {
-            icon = QB.lang('cornerselling.sell.icon'),
-            label = QB.lang('cornerselling.sell.target'),
+            icon = 'fas fa-handshake',
+            label = 'Sell to buyer',
             onSelect = function()
                 if isOfferOpen then return end
 
                 isOfferOpen = true
                 local offerBuyer = buyer
-                local result = QB.nui.openAlert({
-                    title = QB.lang('cornerselling.sellAlert.title'),
-                    message = QB.lang('cornerselling.sellAlert.message',
-                        drugDeal.amount,
-                        drugDeal.itemLabel,
-                        drugDeal.total,
-                        drugDeal.singlePrice
-                    ),
-                    image = drugDeal.img,
-                    confirmLabel = QB.lang('cornerselling.sellAlert.confirmLabel'),
-                    cancelLabel = QB.lang('cornerselling.sellAlert.cancelLabel'),
-                })
+                local accepted = openOffer(drugDeal)
 
                 isOfferOpen = false
-                if result and result.confirmed and isSelling and buyer == offerBuyer then
+                if accepted and isSelling and buyer == offerBuyer then
                     handShake(PlayerPedId(), offerBuyer, function()
                         ClearPedTasks(offerBuyer)
                         ClearPedTasks(PlayerPedId())
@@ -101,6 +154,7 @@ local function findBuyer()
                     TriggerServerEvent('qbdrugs:sellToBuyer', NetworkGetNetworkIdFromEntity(offerBuyer))
                 end
                 endBuyer()
+                drugDeal = nil
                 if isSelling then findBuyer() end
             end,
         }

@@ -13,6 +13,7 @@ local weedItems = {
     og_kush_joint = true,
     blue_dream_joint = true,
 }
+
 local hasSale = {}
 local inProgress = {}
 local function percentNumber(value)
@@ -22,8 +23,6 @@ local function percentNumber(value)
     return tonumber(value)
 end
 
--- The creator owns these values (Drugs.CornerSelling.settings, see server/events.lua). Until that
--- row has loaded, the starting values from shared/config.lua are used.
 local function settings()
     local entry = Drugs and Drugs.CornerSelling and Drugs.CornerSelling.settings
     local data = entry and entry.data
@@ -61,6 +60,7 @@ local function getSellableItem(src)
         end
     end
     if item == nil then
+        QB.notify.send(src, {title = 'qb-drugs', message = 'You have no sellable items.', type = 'error'})
         return false
     end
     if weedItems[item.name] and cfg.weedPercentAdjustable ~= false then
@@ -72,7 +72,7 @@ local function getSellableItem(src)
     sellData.itemLabel = item.label
     sellData.amount = math.min(item.amount, math.max(1, math.floor(tonumber(cfg.maxSell) or 15)))
     sellData.total = sellData.singlePrice * sellData.amount
-    sellData.img = 'nui://qbinventory/html/' .. item.image
+    sellData.img = 'nui://qbinventory/images/' .. item.image
     inProgress[src] = sellData
     return sellData
 end

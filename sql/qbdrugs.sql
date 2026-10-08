@@ -1,4 +1,3 @@
-
 CREATE TABLE IF NOT EXISTS `qbdrugs` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `step` text NOT NULL,
@@ -22,10 +21,10 @@ INSERT INTO `qbdrugs` (`id`, `step`, `locations`, `data`) VALUES
 	(16, 'Heroin:vials', '[{"coords":{"x":1390.35,"y":3603.56,"z":38.78}}]', '{"targetLabel":"Fill Heroin Vials","targetIcon":"poppy","anim":{"dict":"mp_arresting","clip":"a_uncuff","flag":49},"progress":{"label":"Filling Heroin Vials","disable":{"combat":true,"vehicle":true,"move":true},"time":5000}}'),
 	(17, 'Heroin:syringe', '[{"coords":{"x":1391.37,"y":3605.74,"z":38.78}}]', '{"targetLabel":"Make Heroin Syringe","targetIcon":"poppy","anim":{"dict":"mp_arresting","clip":"a_uncuff","flag":49},"progress":{"label":"Making Heroin Syringe","disable":{"combat":true,"vehicle":true,"move":true},"time":5000}}'),
 	(18, 'Meth:tele', '[{"enter":{"x":1393.48,"y":3610.23,"z":39.05},"exit":{"x":996.9099731445313,"y":-3200.830078125,"z":-36.38999938964844}}]', '{"exitTarget":"Exit Lab","enterTarget":"Enter Lab"}'),
-	(19, 'Meth:bag', '[]', '{"targetIcon":"fa-solid fa-bag-shopping","targetLabel":"Bag Meth"}'),
-	(20, 'Meth:heat', '[]', '{"targetIcon":"fa-solid fa-fire","targetLabel":"Heat Chemicals"}'),
-	(21, 'Meth:pour', '[]', '{"targetIcon":"fa-solid fa-flask","trayIcon":"fa-solid fa-hand-paper","targetLabel":"Pour Chemicals","trayLabel":"Grab Tray"}'),
-	(22, 'Meth:smash', '[]', '{"targetIcon":"fa-solid fa-hammer","targetLabel":"Smash Meth"}'),
+	(19, 'Meth:bag', '{"coords":{"x":1014.25,"y":-3194.93,"z":-38.99},"size":{"x":1.0,"y":1.0,"z":2.0},"offset":{"x":-4.9,"y":-1.7,"z":-1.01},"rotation":{"x":0.0,"y":0.0,"z":0.0}}', '{"targetIcon":"fa-solid fa-bag-shopping","targetLabel":"Bag Meth"}'),
+	(20, 'Meth:heat', '{"coords":{"x":1007.89,"y":-3201.17,"z":-38.99},"explosion":true}', '{"targetIcon":"fa-solid fa-fire","targetLabel":"Heat Chemicals"}'),
+	(21, 'Meth:pour', '{"coords":{"x":1006.09,"y":-3200.59,"z":-38.52},"offset":{"x":4.79,"y":2.13,"z":-0.41},"rotation":{"x":0.0,"y":0.0,"z":0.0}}', '{"targetIcon":"fa-solid fa-flask","trayIcon":"fa-solid fa-hand-paper","targetLabel":"Pour Chemicals","trayLabel":"Grab Tray"}'),
+	(22, 'Meth:smash', '{"coords":{"x":1012.04,"y":-3194.96,"z":-38.99},"bucket":{"x":1012.86,"y":-3194.13,"z":-39.2,"w":90.0},"size":{"x":1.0,"y":1.0,"z":2.0},"offset":{"x":-3.143311,"y":-1.666748,"z":-1.010128},"rotation":{"x":0.0,"y":0.0,"z":0.0}}', '{"targetIcon":"fa-solid fa-hammer","targetLabel":"Smash Meth"}'),
 	(23, 'Weed:lab', '[{"enter":{"y":2174.340087890625,"x":861.5900268554688,"z":52.27999877929687},"exit":{"y":-3183.360107421875,"x":1066.4000244140626,"z":-39.15999984741211}}]', '{"enterTarget":"Enter Lab","exitTarget":"Exit Lab"}'),
 	(24, 'Weed:breakNugs', '[{"coords":{"y":-3205.360107421875,"x":1037.52001953125,"z":-38.16999816894531}}]', '{"targetIcon":"weed","progress":{"disable":{"combat":true,"vehicle":true,"move":true},"label":"Breaking Down Weed","time":5000},"targetLabel":"Break Down Weed","anim":{"dict":"mp_arresting","flag":49,"clip":"a_uncuff"}}'),
 	(25, 'Weed:bagWeed', '[{"coords":{"y":-3203.719970703125,"x":1033.9300537109376,"z":-38.18000030517578}}]', '{"targetIcon":"weed","progress":{"disable":{"combat":true,"vehicle":true,"move":true},"label":"Bagging Weed","time":5000},"targetLabel":"Bag Weed","anim":{"dict":"mp_arresting","flag":49,"clip":"a_uncuff"}}'),

@@ -69,7 +69,7 @@ Config = {
         },
         plantTbl = {},
         steps = {
-             exitLab = vector3(1066.4, -3183.36, -39.16),
+        -- The weed lab entrances and exit live in the `qbdrugs` table ('Weed:lab') and are edited in the creator.
             drying = {
                 recipe = {
                     receive = {item = 'dried_cola', amount = 1},
@@ -119,33 +119,9 @@ Config = {
             receive = {item = 'meth_bag', amount = 5},
             give = {} -- reason nothing to give back, all ingredients are consumed in cook_recipe to ensure you dont get to the end without having completed the cookbook
         },
-        Steps = { -- IF YOU DONT KNOW WHAT YOURE DOING DONT CHANGE THE COORDS FOR ANYTHING BESIDES TELE
-            Tele = {
-                inside = vector3(996.91, -3200.83, -36.39),
-            },
-            Pour = {
-                coords = vector3(1006.09, -3200.59, -38.52),    
-                offset = vec3(4.79, 2.13, -0.41),               
-                rotation = vec3(0.0, 0.0, 0.0),                 
-            },
-            Heat = {
-                coords = vector3(1007.89, -3201.17, -38.99),
-                explosion = true,
-            },
-            Smash = {
-                coords = vector3(1012.04, -3194.96, -38.99),
-                bucket = vector4(1012.86, -3194.13, -39.20, 90.00),
-                size = vector3(1.0, 1.0, 2.0),
-                offset = vec3(-3.143311, -1.666748, -1.010128),
-                rotation = vector3(0,0,0.0),
-            },
-            Bag = {
-                coords =  vector3(1014.25, -3194.93, -38.99),
-                size = vector3(1.0, 1.0, 2.0),
-                offset = vec3(-4.9, -1.70, -1.01),
-                rotation = vector3(0,0,0.0),
-            }
-        }
+        -- Where the lab door, the exit and the Pour / Heat / Smash / Bag stations are (coords, offset, rotation,
+        -- size, bucket) lives in the `qbdrugs` table and is edited in the creator (Events > Meth ...).
+        -- Nothing about Meth positions is read from this file.
     }
 }
 

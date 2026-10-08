@@ -21,9 +21,14 @@
 --   ('Crack:cook', 'Crack:bagging', 'Heroin:drying', 'Heroin:vials' and 'Heroin:syringe' use this same layout)
 --   'Weed:drying', 'Weed:breakNugs' and 'Weed:bagWeed' use it too; 'Weed:lab' uses the 'Cocaine:lab' layout.
 --
--- 'Meth:tele' uses the 'Cocaine:lab' layout. 'Meth:pour', 'Meth:heat', 'Meth:smash' and
--- 'Meth:bag' only hold target text (locations = []): the positions stay in DrugConfig.Meth.Steps.
---   Meth:pour data { targetLabel, targetIcon, trayLabel, trayIcon }   the others { targetLabel, targetIcon }
+-- 'Meth:tele' uses the 'Cocaine:lab' layout. 'Meth:pour', 'Meth:heat', 'Meth:smash' and 'Meth:bag'
+-- hold their target text in data and their position in locations (one object, like 'Cocaine:cutting').
+-- Nothing about them is read from the config:
+--   Meth:pour  data { targetLabel, targetIcon, trayLabel, trayIcon }   the others { targetLabel, targetIcon }
+--   Meth:pour  locations { coords, offset, rotation }
+--   Meth:heat  locations { coords, explosion = true | false }
+--   Meth:smash locations { coords, offset, rotation, size = {x,y,z}, bucket = {x,y,z,w} }
+--   Meth:bag   locations { coords, offset, rotation, size = {x,y,z} }
 --
 -- Row layout for 'Cocaine:cutting':
 --   data      { targetLabel, targetIcon }

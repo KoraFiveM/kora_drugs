@@ -26,7 +26,16 @@ local function resetCook(source)
 	cooking[source] = nil
 end
 
+-- Station positions come from the saved Meth rows (the creator), not the config.
+local function stationCoords(name)
+	local entry = Drugs.Meth and Drugs.Meth[name]
+	local c = entry and entry.locations and entry.locations.coords
+	if not (c and tonumber(c.x) and tonumber(c.y) and tonumber(c.z)) then return nil end
+	return vector3(c.x + 0.0, c.y + 0.0, c.z + 0.0)
+end
+
 local function withinRange(source, coords, radius)
+	if not coords then return false end
 	return QB.distance.player(source, coords, radius or 5)
 end
 
@@ -39,7 +48,7 @@ QB.callback.register('qb-drugs:server:startCook', function(source)
 	if cooking[source] then
 		return false, "Cooking already started for this source"
 	end
-	if not withinRange(source, config.Steps.Pour.coords) then
+	if not withinRange(source, stationCoords('pour')) then
 		return false, "Player is too far from the heat source"
 	end
 	if not craft(source, config.cook_recipe) then
@@ -67,7 +76,7 @@ QB.callback.register('qb-drugs:server:runDials', function(source)
 	if not elapsedSince(session, 'pourAt', minStageGap.toHeat) then
 		return false, "Moving too fast"
 	end
-	if not withinRange(source, config.Steps.Heat.coords) then
+	if not withinRange(source, stationCoords('heat')) then
 		return false, "Player is too far from the heat source"
 	end
 
@@ -90,7 +99,7 @@ QB.callback.register('qb-drugs:server:smash', function(source)
 	if not elapsedSince(session, 'heatedAt', minStageGap.toSmash) then
 		return false, "Moving too fast"
 	end
-	if not withinRange(source, config.Steps.Smash.coords) then
+	if not withinRange(source, stationCoords('smash')) then
 		return false, "Player is too far from the smash station"
 	end
 
@@ -106,7 +115,7 @@ RegisterNetEvent('qb-drugs:server:getMeth', function()
 	if not session then return end
 	if not (session.pour and session.heated and session.smashed) then return end
 	if not elapsedSince(session, 'smashedAt', minStageGap.toBag) then return end
-	if not withinRange(src, config.Steps.Bag.coords) then return end
+	if not withinRange(src, stationCoords('bag')) then return end
     if os.time() < session.minTime then return end
 	craft(src, Config.Meth.bag_recipe)
 	resetCook(src)

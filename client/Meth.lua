@@ -1,5 +1,4 @@
 local config = Config.Meth
-local step   = config.Steps
 
 local stage = {
 	idle    = 0, -- nothing started
@@ -26,6 +25,31 @@ local defaultRot     = vector3(0.0, 0.0, 180.0)
 local carryDict = 'anim@heists@box_carry@'
 local cookDict  = 'anim@amb@business@meth@meth_monitoring_cooking@cooking@'
 local smashDict = 'anim@amb@business@meth@meth_smash_weight_check@'
+
+-- Where each station is comes from the saved Meth rows (the creator), never from the config.
+-- stations.pour / heat / smash / bag = { coords, offset, rotation, size, bucket, explosion } as real vectors.
+local stations = {}
+
+local function toVec3(value, fallback)
+	if type(value) == 'table' and tonumber(value.x) and tonumber(value.y) and tonumber(value.z) then
+		return vector3(value.x + 0.0, value.y + 0.0, value.z + 0.0)
+	end
+	return fallback
+end
+
+local function toStation(location)
+	local coords = type(location) == 'table' and toVec3(location.coords)
+	if not coords then return nil end
+	local bucket = toVec3(location.bucket)
+	return {
+		coords    = coords,
+		offset    = toVec3(location.offset, defaultOffset),
+		rotation  = toVec3(location.rotation, defaultRot),
+		size      = toVec3(location.size, defaultSize),
+		bucket    = bucket and vector4(bucket.x, bucket.y, bucket.z, (tonumber(location.bucket.w) or defaultHeading) + 0.0) or nil,
+		explosion = location.explosion == true,
+	}
+end
 
 local function notify(message, type)
 	QB.notify.send({ title = 'qb-drugs', message = message, type = type })
@@ -132,12 +156,17 @@ local function targetText(entry, labelKey, iconKey, locale)
 	return data[labelKey] or QB.lang(locale .. '.target'), data[iconKey] or QB.lang(locale .. '.icon')
 end
 
--- One zone per step, rebuilt only when that step's row changes.
+-- One zone per station, rebuilt only when that station's row changes.
 local zones = {}
-local function stepZone(name, cfg, optionsFn)
+local function stepZone(name, optionsFn)
 	OnDrugs('Meth', name, function(entry)
-		if zones[name] then pcall(function() exports.qbtarget:removeZone(zones[name]) end) end
-		zones[name] = addStepZone(cfg, optionsFn(entry))
+		if zones[name] then
+			pcall(function() exports.qbtarget:removeZone(zones[name]) end)
+			zones[name] = nil
+		end
+		stations[name] = toStation(entry and entry.locations)
+		if not stations[name] then return end
+		zones[name] = addStepZone(stations[name], optionsFn(entry))
 	end)
 end
 
@@ -270,7 +299,8 @@ end
 
 local function runDials(coords)
 	if not exports['qb-minigames']:Lockpick() then
-		if step.Heat.explosion then
+		local heat = stations.heat
+		if heat and heat.explosion then
 			AddExplosion(coords.x, coords.y, coords.z, 49, 10, true, false, true)
 		end
 		TriggerServerEvent('qb-drugs:server:explosion')
@@ -284,7 +314,8 @@ local function runDials(coords)
 		return false
 	end
 
-	heatingMeth(config.Steps.Pour.coords)
+	local pour = stations.pour
+	heatingMeth(pour and pour.coords or coords)
 	notify('You Have Heated the Meth', 'success')
 	return true
 end
@@ -306,7 +337,8 @@ local function bagUp()
 	DeleteEntity(bucketObject)
 	bucketObject = nil
 
-	bagMeth(step.Bag.coords, step.Bag.offset or defaultOffset, step.Bag.rotation or defaultRot)
+	local bag = stations.bag
+	if bag then bagMeth(bag.coords, bag.offset, bag.rotation) end
 	TriggerServerEvent('qb-drugs:server:getMeth')
 	resetCook()
 	return false
@@ -333,7 +365,9 @@ local function smash(coords, offset, rotation)
 	DeleteEntity(trayObject)
 	trayObject = nil
 
-	local bucketCoords = step.Smash.bucket
+	local station = stations.smash
+	local bucketCoords = station and (station.bucket or vector4(station.coords.x, station.coords.y, station.coords.z, defaultHeading))
+	if not bucketCoords then return false end
 	bucketObject = CreateObject("bkr_prop_meth_bigbag_03a", bucketCoords.x, bucketCoords.y, bucketCoords.z, true, true, true)
 	FreezeEntityPosition(bucketObject, true)
 	SetEntityHeading(bucketObject, bucketCoords.w or defaultHeading)
@@ -349,64 +383,69 @@ end
 -- Entrances (many) and the exit (one) come from the 'Meth:tele' row; see LabTeleport.
 OnDrugs('Meth', 'tele', LabTeleport('meth', 'meth'))
 
-if step.Pour then
-	stepZone('pour', step.Pour, function(entry)
-		local pourLabel, pourIcon = targetText(entry, 'targetLabel', 'targetIcon', 'meth.pour')
-		local trayLabel, trayIcon = targetText(entry, 'trayLabel', 'trayIcon', 'meth.tray')
-		return {
-			{
-				label       = pourLabel,
-				icon        = pourIcon,
-				canInteract = function() return atStage(stage.idle) end,
-				onSelect    = function()
-					runStep(stage.idle, function()
-						return startCook(step.Pour.coords, step.Pour.offset or defaultOffset, step.Pour.rotation or defaultRot)
-					end)
-				end,
-			},
-			{
-				label       = trayLabel,
-				icon        = trayIcon,
-				canInteract = function() return atStage(stage.heated) end,
-				onSelect    = function() runStep(stage.heated, pickUpTray) end,
-			},
-		}
-	end)
-end
+stepZone('pour', function(entry)
+	local pourLabel, pourIcon = targetText(entry, 'targetLabel', 'targetIcon', 'meth.pour')
+	local trayLabel, trayIcon = targetText(entry, 'trayLabel', 'trayIcon', 'meth.tray')
+	return {
+		{
+			label       = pourLabel,
+			icon        = pourIcon,
+			canInteract = function() return atStage(stage.idle) end,
+			onSelect    = function()
+				runStep(stage.idle, function()
+					local pour = stations.pour
+					return pour and startCook(pour.coords, pour.offset, pour.rotation)
+				end)
+			end,
+		},
+		{
+			label       = trayLabel,
+			icon        = trayIcon,
+			canInteract = function() return atStage(stage.heated) end,
+			onSelect    = function() runStep(stage.heated, pickUpTray) end,
+		},
+	}
+end)
 
-if step.Heat then
-	stepZone('heat', step.Heat, function(entry)
-		local label, icon = targetText(entry, 'targetLabel', 'targetIcon', 'meth.heat')
-		return {
-			{
-				label       = label,
-				icon        = icon,
-				canInteract = function() return atStage(stage.poured) end,
-				onSelect    = function()
-					runStep(stage.poured, function() return runDials(step.Heat.coords) end)
-				end,
-			},
-		}
-	end)
-end
+stepZone('heat', function(entry)
+	local label, icon = targetText(entry, 'targetLabel', 'targetIcon', 'meth.heat')
+	return {
+		{
+			label       = label,
+			icon        = icon,
+			canInteract = function() return atStage(stage.poured) end,
+			onSelect    = function()
+				runStep(stage.poured, function()
+					local heat = stations.heat
+					return heat and runDials(heat.coords)
+				end)
+			end,
+		},
+	}
+end)
 
-if step.Smash then
-	stepZone('smash', step.Smash, function(entry)
-		local label, icon = targetText(entry, 'targetLabel', 'targetIcon', 'meth.smash')
-		return {
-			{
-				label       = label,
-				icon        = icon,
-				canInteract = function() return atStage(stage.trayed) end,
-				onSelect    = function()
-					runStep(stage.trayed, function()
-						return smash(step.Smash.coords, step.Smash.offset or defaultOffset, step.Smash.rotation or defaultRot)
-					end)
-				end,
-			},
-		}
-	end)
-end
+stepZone('smash', function(entry)
+	local label, icon = targetText(entry, 'targetLabel', 'targetIcon', 'meth.smash')
+	return {
+		{
+			label       = label,
+			icon        = icon,
+			canInteract = function() return atStage(stage.trayed) end,
+			onSelect    = function()
+				runStep(stage.trayed, function()
+					local smashStation = stations.smash
+					return smashStation and smash(smashStation.coords, smashStation.offset, smashStation.rotation)
+				end)
+			end,
+		},
+	}
+end)
+
+-- The bag station has no zone of its own: its bucket is spawned by the smash step and the target is on
+-- that bucket. This only keeps stations.bag current (and its text for the bucket target) from the row.
+OnDrugs('Meth', 'bag', function(entry)
+	stations.bag = toStation(entry and entry.locations)
+end)
 
 
 AddEventHandler('onResourceStop', function(resource)
