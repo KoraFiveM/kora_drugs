@@ -1,7 +1,3 @@
-if Config and Config.Weed and Config.Weed.disabled then
-    print("Weed plants are disabled")
-    return
-end
 
 local function hasWeedItems()
     local items = {'ak47_weed', 'amnesia_weed', 'purple_haze_weed', 'skunk_weed', 'og_kush_weed', 'blue_dream_weed'}

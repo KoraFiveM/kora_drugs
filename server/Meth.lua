@@ -1,4 +1,3 @@
-local config = Config.Meth
 local cooking = {}
 
 RegisterLabTeleport('meth', 'Meth', 'tele')
@@ -22,9 +21,9 @@ local function newCookState()
 	}
 end
 
-local function stationRecipe(name, fallback)
+local function stationRecipe(name)
 	local entry = Drugs.Meth and Drugs.Meth[name]
-	return stepRecipe('Meth:' .. name, entry and entry.data) or fallback
+	return stepRecipe('Meth:' .. name, entry and entry.data)
 end
 
 local function resetCook(source)
@@ -48,7 +47,11 @@ QB.callback.register('qb-drugs:server:startCook', function(source)
 	if not nearStation(source, 'pour') then
 		return false, "Player is too far from the heat source"
 	end
-	if not craft(source, stationRecipe('pour', config.cook_recipe)) then
+	local recipe = stationRecipe('pour')
+	if not recipe then
+		return false, "No recipe is set for this step"
+	end
+	if not craft(source, recipe) then
 		return false, "Missing ingredients"
 	end
 
@@ -114,7 +117,8 @@ RegisterNetEvent('qb-drugs:server:getMeth', function()
 	if not elapsedSince(session, 'smashedAt', minStageGap.toBag) then return end
 	if not nearStation(src, 'bag') then return end
     if os.time() < session.minTime then return end
-	craft(src, stationRecipe('bag', config.bag_recipe))
+	local recipe = stationRecipe('bag')
+	if recipe then craft(src, recipe) end
 	resetCook(src)
 end)
 

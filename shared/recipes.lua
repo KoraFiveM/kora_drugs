@@ -1,100 +1,45 @@
 recipeIds = {}
 recipeInfo = {}
 
-function copyGive(list)
-    local copy = {}
-    for _, entry in ipairs(list or {}) do
-        copy[#copy + 1] = { item = entry.item, amount = entry.amount, keep = entry.keep }
-    end
-    return copy
+local function labelFor(drug, name)
+    return ('%s · %s'):format(drug, (name:gsub('^%l', string.upper)))
 end
 
-local function addRecipe(drug, name, recipe, successNotify)
-    if type(recipe) ~= 'table' then return end
-    recipe.give = recipe.give or {}
+-- Recipes come only from the saved 'Recipes:settings' row. Every saved recipe is rebuilt here,
+-- so one that is deleted in the creator disappears and one that is added shows up.
+function applyRecipes(saved)
+    saved = type(saved) == 'table' and saved or {}
 
-    local id = drug .. ':' .. name
-    recipeIds[#recipeIds + 1] = id
-    recipeInfo[id] = {
-        id = id,
-        drug = drug,
-        label = ('%s · %s'):format(drug, (name:gsub('^%l', string.upper))),
-        recipe = recipe,
-        defaultGive = copyGive(recipe.give),
-        successNotify = successNotify,
-    }
-end
-
-local function findRecipes()
-    for drug, settings in pairs(Config) do
-        if type(drug) == 'string' and type(settings) == 'table' then
-            for name, step in pairs(type(settings.steps) == 'table' and settings.steps or {}) do
-                if type(step) == 'table' then addRecipe(drug, name, step.recipe, step.successNotify) end
-            end
-            for key, value in pairs(settings) do
-                local name = type(key) == 'string' and key:match('^(.+)_recipe$')
-                if name then addRecipe(drug, name, value) end
-            end
-        end
-    end
-    table.sort(recipeIds)
-end
-
-findRecipes()
-
-local function rebuildIds()
-    for index = #recipeIds, 1, -1 do recipeIds[index] = nil end
-    for id in pairs(recipeInfo) do recipeIds[#recipeIds + 1] = id end
-    table.sort(recipeIds)
-end
-
-local function syncCustomRecipes(saved)
-    for id, info in pairs(recipeInfo) do
-        if info.custom and not (type(saved[id]) == 'table' and saved[id].custom) then
-            recipeInfo[id] = nil
-        end
+    for id in pairs(recipeInfo) do
+        if not saved[id] then recipeInfo[id] = nil end
     end
 
     for id, entry in pairs(saved) do
-        local existing = recipeInfo[id]
-        if type(entry) == 'table' and entry.custom and not (existing and not existing.custom) then
-            local drug, name = id:match('^(%w+):(%w+)$')
-            if drug then
-                local receive = type(entry.receive) == 'table' and entry.receive.item
-                    and { item = entry.receive.item, amount = entry.receive.amount or 1 } or nil
-                if existing then
-                    existing.recipe.receive = receive
-                else
-                    recipeInfo[id] = {
-                        id = id,
-                        drug = drug,
-                        label = ('%s · %s'):format(drug, (name:gsub('^%l', string.upper))),
-                        recipe = { receive = receive, give = {} },
-                        defaultGive = {},
-                        custom = true,
-                    }
-                end
+        local drug, name
+        if type(id) == 'string' then drug, name = id:match('^(%w+):(%w+)$') end
+        if drug and type(entry) == 'table' then
+            local receive = type(entry.receive) == 'table' and entry.receive.item
+                and { item = entry.receive.item, amount = entry.receive.amount or 1 } or nil
+
+            local give = {}
+            for index, item in ipairs(type(entry.give) == 'table' and entry.give or {}) do
+                give[index] = { item = item.item, amount = item.amount, keep = item.keep }
             end
+
+            local info = recipeInfo[id]
+            if not info then
+                info = { id = id, drug = drug, label = labelFor(drug, name), recipe = {}, custom = true }
+                recipeInfo[id] = info
+            end
+            -- The recipe table is updated in place so anything holding it sees the change.
+            info.recipe.receive = receive
+            info.recipe.give = give
         end
     end
 
-    rebuildIds()
-end
-
-function applyRecipes(saved)
-    saved = type(saved) == 'table' and saved or {}
-    syncCustomRecipes(saved)
-    for _, id in ipairs(recipeIds) do
-        local info = recipeInfo[id]
-        local override = type(saved[id]) == 'table' and saved[id].give
-        local give = type(override) == 'table' and override or info.defaultGive
-
-        local live = info.recipe.give
-        for index = #live, 1, -1 do live[index] = nil end
-        for index, entry in ipairs(give) do
-            live[index] = { item = entry.item, amount = entry.amount, keep = entry.keep }
-        end
-    end
+    for index = #recipeIds, 1, -1 do recipeIds[index] = nil end
+    for id in pairs(recipeInfo) do recipeIds[#recipeIds + 1] = id end
+    table.sort(recipeIds)
 end
 
 if IsDuplicityVersion() then

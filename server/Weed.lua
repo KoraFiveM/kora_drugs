@@ -1,4 +1,3 @@
-local Step = Config.Weed.steps
 local Inventory = exports['qb-inventory']
 local strains = {
     sativa = {
@@ -51,8 +50,8 @@ local function getWeedData()
         strain = strains[classification][item],
         classification = classification,
         grams = math.random(10, 28) .. 'g',
-        thc = math.random(Config.Weed.percents.thc.min, Config.Weed.percents.thc.max) .. '%',
-        cbd = math.random(Config.Weed.percents.cbd.min, Config.Weed.percents.cbd.max) .. '%'
+        thc = math.random(WeedPercents.thc.min, WeedPercents.thc.max) .. '%',
+        cbd = math.random(WeedPercents.cbd.min, WeedPercents.cbd.max) .. '%'
     }
 end
 
@@ -91,10 +90,7 @@ stepHooks['Weed:bagWeed'] = {
             { item = hasItem.name, amount = hasItem.amount },
             { item = 'gram_bag', amount = hasItem.amount }
         }
-        if craft(src, { receive = receive, give = give }, { cbd = hasItem.info.cbd, thc = hasItem.info.thc }) then
-            local notify = Step.bagWeed and Step.bagWeed.successNotify
-            if notify then QB.notify.send(src, notify) end
-        end
+        craft(src, { receive = receive, give = give }, { cbd = hasItem.info.cbd, thc = hasItem.info.thc })
     end,
 }
 

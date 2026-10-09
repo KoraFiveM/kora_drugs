@@ -1,4 +1,4 @@
-local THC, CBD = Config.Weed.percents.thc, Config.Weed.percents.cbd
+local THC, CBD = WeedPercents.thc, WeedPercents.cbd
 local weedItems = {
     skunk_1g = true,
     purple_haze_1g = true,

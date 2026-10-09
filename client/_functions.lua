@@ -216,9 +216,7 @@ end
 
 for name in pairs(craftSteps) do
     local drug, step = name:match('^(%w+):([%w_]+)$')
-    if not (Config[drug] and Config[drug].disabled) then
-        OnDrugs(drug, step, buildCraft(drug, step))
-    end
+    OnDrugs(drug, step, buildCraft(drug, step))
 end
 
 watchCustom = function(drug, step)

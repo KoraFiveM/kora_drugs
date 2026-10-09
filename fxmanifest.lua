@@ -10,7 +10,7 @@ shared_scripts {
     '@qblib/init.lua',
     '@qbcore/init.lua',
     '@qbsql/init.lua',
-    'shared/config.lua',
+    'shared/constants.lua',
     'shared/recipes.lua',
     'shared/steps.lua'
 }

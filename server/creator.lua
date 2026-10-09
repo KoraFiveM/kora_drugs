@@ -586,18 +586,12 @@ local function cleanRecipeData(data)
     if type(data) ~= 'table' then return nil, 'Invalid data.' end
     local clean = { recipes = {} }
     for id, entry in pairs(type(data.recipes) == 'table' and data.recipes or {}) do
-        local fromConfig = recipeInfo[id] and not recipeInfo[id].custom
-        local isCustom = type(entry) == 'table' and entry.custom == true and validRecipeId(id) and not fromConfig
-        if isCustom or (fromConfig and type(entry) == 'table') then
+        if type(entry) == 'table' and validRecipeId(id) then
             local give, giveErr = cleanGive(entry.give)
             if not give then return nil, giveErr end
-            if isCustom then
-                local receive, receiveErr = cleanReceive(entry.receive)
-                if receiveErr then return nil, receiveErr end
-                clean.recipes[id] = { custom = true, receive = receive, give = give }
-            else
-                clean.recipes[id] = { give = give }
-            end
+            local receive, receiveErr = cleanReceive(entry.receive)
+            if receiveErr then return nil, receiveErr end
+            clean.recipes[id] = { custom = true, receive = receive, give = give }
         end
     end
     return clean
@@ -700,16 +694,6 @@ local function settingsEvent(defaults, cleanData, afterSave)
     }
 end
 
--- The first position of a weed step comes from the config.
-local function weedSeed(step)
-    return function()
-        local steps = Config and Config.Weed and Config.Weed.steps
-        local c = steps and steps[step] and steps[step].coords
-        if not c then return {} end
-        return { { coords = { x = c.x, y = c.y, z = c.z } } }
-    end
-end
-
 local function cuttingLocation()
     return {
         coords = { x = 1095.61, y = -3195.62, z = -39.13 },
@@ -741,9 +725,9 @@ local eventTypes = {
     ['Heroin:drying'] = pointsEvent{ 'Drying Poppies', 'Dry Poppies', 'poppy' },
     ['Heroin:vials'] = pointsEvent{ 'Filling Heroin Vials', 'Fill Heroin Vials', 'poppy' },
     ['Heroin:syringe'] = pointsEvent{ 'Making Heroin Syringe', 'Make Heroin Syringe', 'poppy' },
-    ['Weed:drying'] = pointsEvent{ 'Drying Weed', 'Dry Weed', 'weed', seed = weedSeed('drying') },
-    ['Weed:breakNugs'] = pointsEvent{ 'Breaking Down Weed', 'Break Down Weed', 'weed', seed = weedSeed('breakNugs') },
-    ['Weed:bagWeed'] = pointsEvent{ 'Bagging Weed', 'Bag Weed', 'weed', seed = weedSeed('bagWeed') },
+    ['Weed:drying'] = pointsEvent{ 'Drying Weed', 'Dry Weed', 'weed', seed = noLocations },
+    ['Weed:breakNugs'] = pointsEvent{ 'Breaking Down Weed', 'Break Down Weed', 'weed', seed = noLocations },
+    ['Weed:bagWeed'] = pointsEvent{ 'Bagging Weed', 'Bag Weed', 'weed', seed = noLocations },
 
     ['Cocaine:cutting'] = fixedEvent({ targetLabel = 'cut cocaine', targetIcon = 'knife' }, cuttingLocation),
     ['Cocaine:bagging'] = fixedEvent({ targetLabel = 'bag cocaine', targetIcon = 'box' }, baggingLocation),
@@ -880,7 +864,7 @@ end)
 
 local function effectiveGive(saved, id)
     local entry = saved[id]
-    return entry and entry.give or copyGive(recipeInfo[id].defaultGive)
+    return entry and entry.give or {}
 end
 
 local function recipesPayload()
@@ -901,7 +885,7 @@ local function recipesPayload()
         for _, entry in ipairs(give) do track(entry.item) end
         list[#list + 1] = {
             id = id, label = info.label, receive = makes, give = give,
-            edited = saved[id] ~= nil and not info.custom, custom = info.custom == true,
+            custom = true,
         }
     end
     return { list = list, items = items }
@@ -969,9 +953,7 @@ adminCallback('qbdrugs:creator:recipes:create', function(_, drug, name, item, am
 end)
 
 adminCallback('qbdrugs:creator:recipes:receive', function(_, id, item, amount)
-    if not (recipeInfo[id] and recipeInfo[id].custom) then
-        return fail('Only recipes made here can change what they make.')
-    end
+    if not recipeInfo[id] then return fail('Unknown recipe.') end
     local receive, err = checkedReceive(item, amount)
     if err then return fail(err) end
 
@@ -982,7 +964,7 @@ adminCallback('qbdrugs:creator:recipes:receive', function(_, id, item, amount)
 end)
 
 adminCallback('qbdrugs:creator:recipes:delete', function(_, id)
-    if not (recipeInfo[id] and recipeInfo[id].custom) then return fail('Only recipes made here can be deleted.') end
+    if not recipeInfo[id] then return fail('Unknown recipe.') end
 
     return updateRecipes(function(saved)
         if not saved[id] then return 'Unknown recipe.' end
@@ -1030,9 +1012,6 @@ local function takenDrugName(name)
     local lower = name:lower()
     for _, known in ipairs(customRegistry().drugs) do
         if known:lower() == lower then return true end
-    end
-    for drug in pairs(Config) do
-        if type(drug) == 'string' and drug:lower() == lower then return true end
     end
     for step in pairs(eventTypes) do
         local drug = step:match('^(%w+):')
@@ -1193,7 +1172,7 @@ end)
 
 RegisterCommand('drugCreator', function(source)
     if not isAdmin(source) then
-        QB.print.warn(('[qbdrugs] player %s was denied /drugCreator: they do not have the "%s" ace'):format(source, Config.creatorAce or 'command'))
+        QB.print.warn(('[qbdrugs] player %s was denied /drugCreator: they do not have the "%s" ace'):format(source, 'command'))
         QB.notify.send(source, { title = 'Drug Creator', message = 'Admin permission required.', type = 'error' })
         return
     end

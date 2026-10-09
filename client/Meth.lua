@@ -1,5 +1,3 @@
-local config = Config.Meth
-
 local stage = {
 	idle    = 0, -- nothing started
 	poured  = 1, -- chemicals in, cooker running

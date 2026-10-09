@@ -1,7 +1,3 @@
-if Config and Config.Cocaine and Config.Cocaine.disabled then
-    print("Cocaine plants are disabled")
-    return
-end
 
 local function setStage()
     CreateThread(function()

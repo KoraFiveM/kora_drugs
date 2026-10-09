@@ -2,6 +2,9 @@ local APP_ID = 'qbdrugs:creator'
 
 local selected = nil
 local selectedEvent = nil
+-- Bumped whenever an event is opened or its settings are saved. It is part of every event form id, so
+-- the UI builds the forms again from the saved data instead of showing what the last event left in them.
+local eventRevision = 0
 local currentView = 'plants'
 local pendingTool = nil
 local CORNER_STEP = 'CornerSelling:settings'
@@ -345,6 +348,10 @@ local function eventsView()
     }
 end
 
+local function eventBlockId(name)
+    return ('%s:%s:%d'):format(name, selectedEvent.step, eventRevision)
+end
+
 local function labView(info)
     local data = selectedEvent.data or {}
 
@@ -366,7 +373,7 @@ local function labView(info)
             description = 'Target text, and the entrances that lead into the lab.',
             blocks = {
                 {
-                    type = 'form', id = 'event-data', title = 'Target text',
+                    type = 'form', id = eventBlockId('event-data'), title = 'Target text',
                     fields = {
                         { id = 'enterTarget', label = 'Enter target', type = 'text', default = data.enterTarget or 'Enter Lab' },
                         { id = 'exitTarget', label = 'Exit target', type = 'text', default = data.exitTarget or 'Exit Lab' },
@@ -374,14 +381,14 @@ local function labView(info)
                     action = { id = 'event:data:save', label = 'Save' },
                 },
                 {
-                    type = 'form', id = 'event-add', title = 'Add entrance',
+                    type = 'form', id = eventBlockId('event-add'), title = 'Add entrance',
                     fields = {
                         { id = 'gang', label = 'Gang', type = 'text', default = '',
                             description = 'Only members of this gang can use the entrance. Leave empty for everyone.' },
                     },
                     action = { id = 'event:add', label = 'Aim and place entrance' },
                 },
-                { type = 'list', id = 'event-locations', layout = 'cards', title = ('Entrances (%d)'):format(#items), items = items, empty = 'No entrances yet.' },
+                { type = 'list', id = eventBlockId('event-locations'), layout = 'cards', title = ('Entrances (%d)'):format(#items), items = items, empty = 'No entrances yet.' },
             },
         },
     }
@@ -428,7 +435,7 @@ local function pointsView(info)
             description = ('Target text, progress bar and animation, and where players can %s.'):format(text.noun),
             blocks = {
                 {
-                    type = 'form', id = 'event-data', title = 'Settings',
+                    type = 'form', id = eventBlockId('event-data'), title = 'Settings',
                     fields = {
                         { id = 'targetLabel', label = 'Target label', type = 'text', default = data.targetLabel or text.label },
                         { id = 'targetIcon', label = 'Target icon', type = 'text', default = data.targetIcon or text.icon },
@@ -447,7 +454,7 @@ local function pointsView(info)
                     action = { id = 'event:data:save', label = 'Save' },
                 },
                 {
-                    type = 'form', id = 'event-place', title = 'Place locations',
+                    type = 'form', id = eventBlockId('event-place'), title = 'Place locations',
                     fields = {
                         { id = 'gang', label = 'Gang', type = 'text', default = '',
                             description = 'Only members of this gang can use the location. Leave empty for everyone.' },
@@ -456,7 +463,7 @@ local function pointsView(info)
                     },
                     action = { id = 'event:place', label = 'Aim and place locations' },
                 },
-                { type = 'list', id = 'event-locations', layout = 'cards', title = ('Locations (%d)'):format(#items), items = items, empty = 'No locations yet.' },
+                { type = 'list', id = eventBlockId('event-locations'), layout = 'cards', title = ('Locations (%d)'):format(#items), items = items, empty = 'No locations yet.' },
             },
         },
     }
@@ -487,7 +494,7 @@ local function textView(info)
             description = ('Target text for the %s. Its position is fixed and cannot be edited here.'):format(info.text.noun),
             blocks = {
                 {
-                    type = 'form', id = 'event-data', title = 'Target text',
+                    type = 'form', id = eventBlockId('event-data'), title = 'Target text',
                     fields = fields,
                     action = { id = 'event:data:save', label = 'Save' },
                 },
@@ -524,7 +531,7 @@ local function withRecipeField(view, info)
     local field = recipeField(info.step, selectedEvent.data or {})
     if not field then return view end
     for _, block in ipairs(view.content.blocks) do
-        if block.id == 'event-data' then table.insert(block.fields, 1, field) end
+        if block.id == eventBlockId('event-data') then table.insert(block.fields, 1, field) end
     end
     return view
 end
@@ -775,8 +782,6 @@ local function recipesView()
     local items = {}
     for _, recipe in ipairs(recipes.list) do
         local metadata = { { label = 'Needs', value = needsText(recipe) } }
-        if recipe.custom then metadata[#metadata + 1] = { label = 'Status', value = 'Custom' } end
-        if recipe.edited then metadata[#metadata + 1] = { label = 'Status', value = 'Edited' } end
 
         items[#items + 1] = {
             id = recipe.id,
@@ -791,7 +796,7 @@ local function recipesView()
         id = 'recipes', label = 'Recipes', icon = 'FlaskConical',
         content = {
             title = 'Recipes',
-            description = 'Pick a recipe to change what it needs, or make a new one. Only recipes made here can be deleted.',
+            description = 'Pick a recipe to change what it makes and needs, or make a new one.',
             blocks = {
                 {
                     type = 'form', id = 'recipe-create', title = 'New recipe',
@@ -977,6 +982,7 @@ local function selectEvent(step)
     local record, err = QB.callback.trigger('qbdrugs:creator:event:get', step)
     if not record then return fail(err or 'Failed to load event.') end
     selectedEvent, currentView = record, 'event'
+    eventRevision = eventRevision + 1
     return refresh()
 end
 
@@ -1024,6 +1030,7 @@ local function saveEventData(values)
 
     local ok, err = persistEvent(patch)
     if not ok then return fail(err) end
+    eventRevision = eventRevision + 1
     return refresh(notice('Saved.'))
 end
 

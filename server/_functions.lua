@@ -50,7 +50,7 @@ end
 
 function isAdmin(src)
     src = tonumber(src)
-    return src ~= nil and src > 0 and IsPlayerAceAllowed(src, Config.creatorAce or 'command')
+    return src ~= nil and src > 0 and IsPlayerAceAllowed(src, 'command')
 end
 
 function isNear(src, coords, radius)
