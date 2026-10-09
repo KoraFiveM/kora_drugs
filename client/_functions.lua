@@ -3,61 +3,17 @@ qbdrugsFunctionsLoaded = true
 
 local Busy = false
 
-local function getItemLabel(item)
-    local itemData = exports.qbcore:getShared('items', item)
-    return itemData and itemData.label or item
-end
-
+-- Notifies for every item the recipe asks for that the player does not have. True when they have all of them.
 function itemCheck(recipe)
-    local missing = {}
+    local hasAll = true
     for _, v in pairs(recipe.give) do
         if not exports['qb-inventory']:HasItem(v.item, v.amount) then
-            missing[#missing + 1] = {title = 'qb-drugs', message = 'You Need ' .. v.amount .. ' ' .. getItemLabel(v.item), type = 'error'}
+            hasAll = false
+            local itemData = exports.qbcore:getShared('items', v.item)
+            QB.notify.send({ title = 'qb-drugs', message = 'You Need ' .. v.amount .. ' ' .. (itemData and itemData.label or v.item), type = 'error' })
         end
     end
-    if #missing > 0 then
-        for _, notify in pairs(missing) do
-            QB.notify.send(notify)
-        end
-        return
-    end
-    return true
-end
-
-
-function returnBasicOption(step, event, key)
-    return {
-        {
-            label = QB.lang(key .. '.target'),
-            icon = QB.lang(key .. '.icon'),
-            onSelect = function()
-                    if Busy then return end
-                    if not itemCheck(step.recipe) then return end
-                    Busy = true
-                    local progress = QB.progressbar.start({
-                        label = QB.lang(key .. '.progress') or "Missing Text, IDK What youre doing",
-                        duration = step.progress and step.progress.time or DefaultProgress.time,
-                        disable = step.progress and step.progress.disable or DefaultProgress.disable,
-                        anim = step.progress and step.progress.anim or DefaultProgress.anim
-                    })
-                    if progress then
-                        TriggerServerEvent(event)
-                    end
-                    Busy = false
-            end,
-            canInteract = function()
-                return not Busy
-            end
-        }
-    }
-end
-function basicTarget(coords, rotation, step, event, key)
-   return exports.qbtarget:addBoxZone({
-        coords = coords,
-        size = vector3(2,2,2),
-        rotation = rotation,
-        options = returnBasicOption(step, event, key)
-    })
+    return hasAll
 end
 
 Drugs = {}
@@ -153,13 +109,17 @@ function createObject(object, coords, rotation, options)
     return ped
 end
 
+local function removeZones(ids)
+    for _, id in ipairs(ids) do
+        pcall(function() exports.qbtarget:removeZone(id) end)
+    end
+end
+
 function LabTeleport(name, locale)
     local zones = {}
 
     local function clear()
-        for _, id in ipairs(zones) do
-            pcall(function() exports.qbtarget:removeZone(id) end)
-        end
+        removeZones(zones)
         zones = {}
     end
 
@@ -209,9 +169,7 @@ local craftZones = {}
 local function clearCraft(name)
     local zones = craftZones[name]
     if zones then
-        for _, id in ipairs(zones.boxes) do
-            pcall(function() exports.qbtarget:removeZone(id) end)
-        end
+        removeZones(zones.boxes)
         for _, object in ipairs(zones.objects) do
             pcall(function() QB.entities.remove(object) end)
         end

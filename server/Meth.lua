@@ -22,7 +22,6 @@ local function newCookState()
 	}
 end
 
--- The recipe picked for a station on the creator's events page; the config one if none.
 local function stationRecipe(name, fallback)
 	local entry = Drugs.Meth and Drugs.Meth[name]
 	return stepRecipe('Meth:' .. name, entry and entry.data) or fallback
@@ -32,17 +31,9 @@ local function resetCook(source)
 	cooking[source] = nil
 end
 
--- Station positions come from the saved Meth rows (the creator), not the config.
-local function stationCoords(name)
+local function nearStation(source, name)
 	local entry = Drugs.Meth and Drugs.Meth[name]
-	local c = entry and entry.locations and entry.locations.coords
-	if not (c and tonumber(c.x) and tonumber(c.y) and tonumber(c.z)) then return nil end
-	return vector3(c.x + 0.0, c.y + 0.0, c.z + 0.0)
-end
-
-local function withinRange(source, coords, radius)
-	if not coords then return false end
-	return QB.distance.player(source, coords, radius or 5)
+	return isNear(source, entry and entry.locations and entry.locations.coords)
 end
 
 local function elapsedSince(session, stampField, gap)
@@ -54,7 +45,7 @@ QB.callback.register('qb-drugs:server:startCook', function(source)
 	if cooking[source] then
 		return false, "Cooking already started for this source"
 	end
-	if not withinRange(source, stationCoords('pour')) then
+	if not nearStation(source, 'pour') then
 		return false, "Player is too far from the heat source"
 	end
 	if not craft(source, stationRecipe('pour', config.cook_recipe)) then
@@ -82,7 +73,7 @@ QB.callback.register('qb-drugs:server:runDials', function(source)
 	if not elapsedSince(session, 'pourAt', minStageGap.toHeat) then
 		return false, "Moving too fast"
 	end
-	if not withinRange(source, stationCoords('heat')) then
+	if not nearStation(source, 'heat') then
 		return false, "Player is too far from the heat source"
 	end
 
@@ -105,7 +96,7 @@ QB.callback.register('qb-drugs:server:smash', function(source)
 	if not elapsedSince(session, 'heatedAt', minStageGap.toSmash) then
 		return false, "Moving too fast"
 	end
-	if not withinRange(source, stationCoords('smash')) then
+	if not nearStation(source, 'smash') then
 		return false, "Player is too far from the smash station"
 	end
 
@@ -121,7 +112,7 @@ RegisterNetEvent('qb-drugs:server:getMeth', function()
 	if not session then return end
 	if not (session.pour and session.heated and session.smashed) then return end
 	if not elapsedSince(session, 'smashedAt', minStageGap.toBag) then return end
-	if not withinRange(src, stationCoords('bag')) then return end
+	if not nearStation(src, 'bag') then return end
     if os.time() < session.minTime then return end
 	craft(src, stationRecipe('bag', config.bag_recipe))
 	resetCook(src)

@@ -35,6 +35,14 @@ for classification, strainData in pairs(strains) do
     classificationKeys[classification] = keys
 end
 
+-- The first weed item the player is carrying, or nil.
+local function findWeedItem(src)
+    for _, name in ipairs(allItems) do
+        local item = Inventory:GetItemByName(src, name)
+        if item then return item end
+    end
+end
+
 local function getWeedData()
     local classification = math.random(1, 2) == 1 and 'sativa' or 'indica'
     local keys = classificationKeys[classification]
@@ -75,11 +83,7 @@ stepHooks['Weed:breakNugs'] = {
 
 stepHooks['Weed:bagWeed'] = {
     handler = function(src)
-        local hasItem
-        for i = 1, #allItems do
-            hasItem = Inventory:GetItemByName(src, allItems[i])
-            if hasItem then break end
-        end
+        local hasItem = findWeedItem(src)
         if not hasItem then return end
 
         local receive = { item = bagged[hasItem.name], amount = hasItem.amount }
@@ -104,13 +108,7 @@ local jointItem = {
 }
 exports.qbcore:createUseable('rolling_paper', function(source, item)
     local src = source
-    local hasItem = nil
-    for i = 1, #allItems do
-        hasItem = Inventory:GetItemByName(src, allItems[i])
-        if hasItem then
-            break
-        end
-    end
+    local hasItem = findWeedItem(src)
     if not hasItem then QB.notify.send(src, {title = 'qb-drugs', message = 'You need a weed item to roll', type = 'error'}) return end
     local finished = QB.callback.trigger(src, 'qb-drugs:client:rolling')
     if not finished then return end

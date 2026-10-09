@@ -16,6 +16,12 @@ local weedItems = {
 
 local hasSale = {}
 local inProgress = {}
+
+AddEventHandler('playerDropped', function()
+    local src = source
+    hasSale[src], inProgress[src] = nil, nil
+end)
+
 local function percentNumber(value)
     if type(value) == 'string' then
         value = value:gsub('%%$', '')
@@ -49,40 +55,41 @@ local function calculateWeedPrice(item, thc, cbd, cfg)
 end
 
 local function getSellableItem(src)
-    local item = nil
-    local sellData = {}
     local cfg = settings()
-    for k, v in pairs(cfg.pricing) do
-        local has = exports['qb-inventory']:HasItem(src, k)
-        if has then
-            item = exports.qbcore:getItemByName(src, k)
+    local item
+    for name in pairs(cfg.pricing) do
+        if exports['qb-inventory']:HasItem(src, name) then
+            item = exports.qbcore:getItemByName(src, name)
             break
         end
     end
-    if item == nil then
+    if not item then
         QB.notify.send(src, {title = 'qb-drugs', message = 'You have no sellable items.', type = 'error'})
         return false
     end
+
+    local info = item.info or {}
+    local singlePrice = cfg.pricing[item.name]
     if weedItems[item.name] and cfg.weedPercentAdjustable ~= false then
-        sellData.singlePrice = calculateWeedPrice(item.name, item.info.thc, item.info.cbd, cfg)
-    else
-        sellData.singlePrice = cfg.pricing[item.name]
+        singlePrice = calculateWeedPrice(item.name, info.thc, info.cbd, cfg)
     end
-    sellData.item = item.name
-    sellData.itemLabel = item.label
-    sellData.amount = math.min(item.amount, math.max(1, math.floor(tonumber(cfg.maxSell) or 15)))
-    sellData.total = sellData.singlePrice * sellData.amount
-    sellData.img = 'nui://qbinventory/images/' .. item.image
+
+    local amount = math.min(item.amount, math.max(1, math.floor(tonumber(cfg.maxSell) or 15)))
+    local sellData = {
+        item = item.name,
+        itemLabel = item.label,
+        singlePrice = singlePrice,
+        amount = amount,
+        total = singlePrice * amount,
+        img = 'nui://qbinventory/images/' .. (item.image or ''),
+    }
     inProgress[src] = sellData
     return sellData
 end
 
 QB.callback.register('qbdrugs:getSellableItem', function(source)
-    if not hasSale[source] then
-        hasSale[source] = {}
-    end
-    local sellData = getSellableItem(source)
-    return sellData
+    hasSale[source] = hasSale[source] or {}
+    return getSellableItem(source)
 end)
 
 RegisterNetEvent('qbdrugs:sellToBuyer', function(netId)

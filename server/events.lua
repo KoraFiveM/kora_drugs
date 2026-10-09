@@ -23,16 +23,28 @@ EventSteps = {
 
 Drugs = {}
 
-local function decode(raw, fallback)
-    if type(raw) ~= 'string' or raw == '' then return fallback end
-    local ok, decoded = pcall(json.decode, raw)
-    return (ok and type(decoded) == 'table' and decoded) or fallback
+-- Settings only the server reads (prices, custom drug names). They are kept out of GlobalState and
+-- out of the reload event, so clients never receive them.
+local serverOnly = { CornerSelling = true, Custom = true }
+
+local function publicDrugs()
+    local visible = {}
+    for drug, steps in pairs(Drugs) do
+        if not serverOnly[drug] then visible[drug] = steps end
+    end
+    return visible
 end
 
+local function splitStep(name)
+    return name:match('^(%w+):([%w_]+)$')
+end
+
+local function isVec(v)
+    return type(v) == 'table' and tonumber(v.x) and tonumber(v.y) and tonumber(v.z)
+end
+
+-- Entrances are saved as { enter = vec or { vec, ... }, exit = vec, gang }; this returns one entry per door.
 function NormalizeEntrances(list)
-    local function isVec(v)
-        return type(v) == 'table' and tonumber(v.x) and tonumber(v.y) and tonumber(v.z)
-    end
     local result = {}
     for _, entry in ipairs(type(list) == 'table' and list or {}) do
         if type(entry) == 'table' and isVec(entry.exit) then
@@ -47,17 +59,19 @@ function NormalizeEntrances(list)
     return result
 end
 
-local normalizers = {
-    lab = NormalizeEntrances,
-    tele = NormalizeEntrances,
-}
+local normalizers = { lab = NormalizeEntrances, tele = NormalizeEntrances }
 
-local function entryFromRow(step, row)
-    local locations = decode(row.locations, {})
-    if normalizers[step] then locations = normalizers[step](locations) end
-    return { data = decode(row.data, {}), locations = locations }
+local function emptyEntry()
+    return { data = {}, locations = {} }
 end
 
+local function entryFromRow(step, row)
+    local locations = decodeJson(row.locations, {})
+    if normalizers[step] then locations = normalizers[step](locations) end
+    return { data = decodeJson(row.data, {}), locations = locations }
+end
+
+-- What each step looked like the last time it was read, so an unchanged row is not sent to everyone again.
 local seen = {}
 
 local function signature(row)
@@ -66,43 +80,47 @@ end
 
 local function build()
     local all = {}
+    local function put(drug, step, entry)
+        all[drug] = all[drug] or {}
+        all[drug][step] = entry
+    end
 
     for _, name in ipairs(EventSteps) do
-        local drug, step = name:match('^(%w+):([%w_]+)$')
-        all[drug] = all[drug] or {}
-        all[drug][step] = { data = {}, locations = {} }
+        local drug, step = splitStep(name)
+        put(drug, step, emptyEntry())
         seen[name] = ''
     end
 
     for _, row in ipairs(QB.sql.query('SELECT * FROM `qbdrugs`') or {}) do
-        local drug, step = row.step:match('^(%w+):([%w_]+)$')
+        local drug, step = splitStep(row.step)
         if drug and step ~= 'pick' then
-            all[drug] = all[drug] or {}
-            all[drug][step] = entryFromRow(step, row)
+            put(drug, step, entryFromRow(step, row))
             seen[row.step] = signature(row)
         end
     end
-
     return all
 end
 
 local function refreshStep(name)
-    local drug, step = name:match('^(%w+):([%w_]+)$')
+    local drug, step = splitStep(name)
     if not drug or step == 'pick' then return false end
 
-    local rows = QB.sql.query('SELECT * FROM `qbdrugs` WHERE `step` = ? LIMIT 1', { name })
-    local row = rows and rows[1]
+    local row = dbRow(name)
     if seen[name] == signature(row) then return false end
     seen[name] = signature(row)
 
     Drugs[drug] = Drugs[drug] or {}
-    Drugs[drug][step] = row and entryFromRow(step, row) or { data = {}, locations = {} }
-    GlobalState.Drugs = Drugs -- keeps players who join later up to date
-    TriggerClientEvent('qbdrugs:client:drugsReload', -1, drug, step, Drugs[drug][step])
+    Drugs[drug][step] = row and entryFromRow(step, row) or emptyEntry()
+
+    if not serverOnly[drug] then
+        GlobalState.Drugs = publicDrugs() -- keeps players who join later up to date
+        TriggerClientEvent('qbdrugs:client:drugsReload', -1, drug, step, Drugs[drug][step])
+    end
     return true
 end
 
-local function reload(name)
+-- Reloads one step from the database, or every step when no name is given.
+function ReloadEvents(name)
     if name then return refreshStep(name) end
 
     local names = {}
@@ -113,7 +131,7 @@ local function reload(name)
     for each in pairs(names) do refreshStep(each) end
 end
 
-exports('ReloadEvents', reload)
+exports('ReloadEvents', ReloadEvents)
 
 Drugs = build()
-GlobalState.Drugs = Drugs
+GlobalState.Drugs = publicDrugs()

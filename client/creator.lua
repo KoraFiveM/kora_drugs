@@ -1,5 +1,4 @@
 local APP_ID = 'qbdrugs:creator'
-local COMMAND = Config.creatorCommand or 'plantcreator'
 
 local selected = nil
 local selectedEvent = nil
@@ -97,6 +96,34 @@ end
 
 local function notice(message, tone)
     return { tone = tone or 'success', message = message }
+end
+
+-- A form value as trimmed text ('' when it is missing or not text).
+local function text(value)
+    return type(value) == 'string' and value:match('^%s*(.-)%s*$') or ''
+end
+
+-- Same, but nil when empty (for optional fields like gang and object).
+local function optionalText(value)
+    local result = text(value)
+    return result ~= '' and result or nil
+end
+
+-- Sorts by lowercase label, then by id.
+local function byLabel(a, b)
+    local la, lb = a.label:lower(), b.label:lower()
+    if la ~= lb then return la < lb end
+    return a.id < b.id
+end
+
+-- Asks the admin to confirm. True when they did.
+local function confirmed(title, message)
+    local answer = QB.nui.openAlert({ title = title, message = message, confirmLabel = 'Delete' })
+    return answer and answer.confirmed == true
+end
+
+local function toast(title, message)
+    QB.notify.send({ title = title, message = message, type = 'error' })
 end
 
 local function appended(list, entry)
@@ -282,11 +309,7 @@ local function eventsView()
         end
     end
 
-    table.sort(events, function(a, b)
-        local la, lb = a.label:lower(), b.label:lower()
-        if la ~= lb then return la < lb end
-        return a.id < b.id
-    end)
+    table.sort(events, byLabel)
 
     local drugOptions = {}
     for _, drug in ipairs(customs.drugs) do
@@ -557,6 +580,44 @@ local function customsView()
     }
 end
 
+-- Search results as cards with an Add button (or a note when the item is already there).
+local function foundItems(results, addPrefix, addedText)
+    local found = {}
+    for _, result in ipairs(results) do
+        found[#found + 1] = {
+            id = result.name,
+            label = result.label,
+            description = result.name,
+            image = result.image,
+            metadata = result.added and { { label = 'Status', value = addedText } } or nil,
+            actions = result.added and {} or {
+                { id = addPrefix .. result.name, label = 'Add', icon = 'Plus', variant = 'primary' },
+            },
+        }
+    end
+    return found
+end
+
+-- The search box and the results list that sit on the Cornerselling and Recipe pages.
+local function searchBlocks(state, prefix, description, found)
+    local blocks = {
+        {
+            type = 'form', id = prefix .. '-search', title = 'Add items',
+            fields = { { id = 'query', label = 'Search all items', type = 'text', default = state.query or '', description = description } },
+            action = { id = prefix .. ':search', label = 'Search' },
+        },
+    }
+    if state.query then
+        local more = state.total > #found and (' of ' .. state.total) or ''
+        blocks[#blocks + 1] = {
+            type = 'list', id = prefix .. '-results', layout = 'cards', columns = 3,
+            title = ('Results for "%s" (%d%s)'):format(state.query, #found, more),
+            items = found, empty = 'No items match that search.',
+        }
+    end
+    return blocks
+end
+
 local function money(value)
     return ('$%d'):format(math.floor(tonumber(value) or 0))
 end
@@ -614,19 +675,7 @@ local function cornerView()
         }
     end
 
-    local found = {}
-    for _, result in ipairs(corner.results) do
-        found[#found + 1] = {
-            id = result.name,
-            label = result.label,
-            description = result.name,
-            image = result.image,
-            metadata = result.added and { { label = 'Status', value = 'Already in the list' } } or nil,
-            actions = result.added and {} or {
-                { id = 'corner:add:' .. result.name, label = 'Add', icon = 'Plus', variant = 'primary' },
-            },
-        }
-    end
+    local found = foundItems(corner.results, 'corner:add:', 'Already in the list')
 
     local blocks = {
         {
@@ -649,23 +698,10 @@ local function cornerView()
             },
             action = { id = 'corner:save', label = 'Save' },
         },
-        {
-            type = 'form', id = 'corner-search', title = 'Add items',
-            fields = {
-                { id = 'query', label = 'Search all items', type = 'text', default = corner.query or '',
-                    description = 'Part of an item name or label. Add the ones you want to sell below.' },
-            },
-            action = { id = 'corner:search', label = 'Search' },
-        },
     }
 
-    if corner.query then
-        local more = corner.total > #found and (' of ' .. corner.total) or ''
-        blocks[#blocks + 1] = {
-            type = 'list', id = 'corner-results', layout = 'cards', columns = 3,
-            title = ('Results for "%s" (%d%s)'):format(corner.query, #found, more),
-            items = found, empty = 'No items match that search.',
-        }
+    for _, block in ipairs(searchBlocks(corner, 'corner', 'Part of an item name or label. Add the ones you want to sell below.', found)) do
+        blocks[#blocks + 1] = block
     end
 
     blocks[#blocks + 1] = {
@@ -804,39 +840,9 @@ local function recipeView()
         }
     end
 
-    local found = {}
-    for _, result in ipairs(recipes.results) do
-        found[#found + 1] = {
-            id = result.name,
-            label = result.label,
-            description = result.name,
-            image = result.image,
-            metadata = result.added and { { label = 'Status', value = 'Already in the recipe' } } or nil,
-            actions = result.added and {} or {
-                { id = 'recipe:add:' .. result.name, label = 'Add', icon = 'Plus', variant = 'primary' },
-            },
-        }
-    end
+    local found = foundItems(recipes.results, 'recipe:add:', 'Already in the recipe')
 
-    local blocks = {
-        {
-            type = 'form', id = 'recipe-search', title = 'Add items',
-            fields = {
-                { id = 'query', label = 'Search all items', type = 'text', default = recipes.query or '',
-                    description = 'Part of an item name or label. Add the ones this recipe should need below.' },
-            },
-            action = { id = 'recipe:search', label = 'Search' },
-        },
-    }
-
-    if recipes.query then
-        local more = recipes.total > #found and (' of ' .. recipes.total) or ''
-        blocks[#blocks + 1] = {
-            type = 'list', id = 'recipe-results', layout = 'cards', columns = 3,
-            title = ('Results for "%s" (%d%s)'):format(recipes.query, #found, more),
-            items = found, empty = 'No items match that search.',
-        }
-    end
+    local blocks = searchBlocks(recipes, 'recipe', 'Part of an item name or label. Add the ones this recipe should need below.', found)
 
     blocks[#blocks + 1] = {
         type = 'list', id = 'recipe-required', layout = 'cards', columns = 3,
@@ -951,12 +957,7 @@ local function saveSettings(values)
 end
 
 local function deleteSelected()
-    local confirmation = QB.nui.openAlert({
-        title = 'Delete plant?',
-        message = ('This removes %s and all of its spots.'):format(selected.id),
-        confirmLabel = 'Delete',
-    })
-    if not confirmation or not confirmation.confirmed then return refresh() end
+    if not confirmed('Delete plant?', ('This removes %s and all of its spots.'):format(selected.id)) then return refresh() end
 
     local ok, err = QB.callback.trigger('qbdrugs:creator:delete', selected.id)
     if not ok then return fail(err or 'Failed to delete plant.') end
@@ -1027,21 +1028,27 @@ local function saveEventData(values)
 end
 
 local function startEntrance(values)
-    local gang = type(values.gang) == 'string' and values.gang:match('^%s*(.-)%s*$') or ''
-    if gang == '' then gang = nil end
+    local gang = optionalText(values.gang)
 
     pendingTool, currentView = { kind = 'entrance', gang = gang, exit = eventInfo(selectedEvent.step).exit }, 'event'
     return { close = true }
 end
 
-local function loadCorner()
-    local result, err = QB.callback.trigger('qbdrugs:creator:corner:get')
+-- Loads one page's data from the server. apply(result) stores it.
+local function loadPage(callback, failMessage, apply)
+    local result, err = QB.callback.trigger(callback)
     if not result then
-        QB.notify.send({ title = 'Drug Creator', message = err or 'Could not load the cornerselling settings.', type = 'error' })
+        toast('Drug Creator', err or failMessage)
         return false
     end
-    corner.data, corner.items = result.data, result.items or {}
+    apply(result)
     return true
+end
+
+local function loadCorner()
+    return loadPage('qbdrugs:creator:corner:get', 'Could not load the cornerselling settings.', function(result)
+        corner.data, corner.items = result.data, result.items or {}
+    end)
 end
 
 local function persistCorner(data)
@@ -1082,7 +1089,7 @@ local function cornerAction(actionId, values)
     end
 
     if actionId == 'corner:search' then
-        local query = type(values.query) == 'string' and values.query:match('^%s*(.-)%s*$') or ''
+        local query = text(values.query)
         if query == '' then
             corner.query, corner.results, corner.total = nil, {}, 0
             return refresh()
@@ -1149,14 +1156,16 @@ local function cornerAction(actionId, values)
     return refresh()
 end
 
-local function loadRecipes()
-    local result, err = QB.callback.trigger('qbdrugs:creator:recipes:get')
-    if not result then
-        QB.notify.send({ title = 'Drug Creator', message = err or 'Could not load the recipes.', type = 'error' })
-        return false
-    end
+local function setRecipes(result)
     recipes.list, recipes.items = result.list or {}, result.items or {}
-    return true
+end
+
+local function clearRecipeSearch()
+    recipes.query, recipes.results, recipes.total = nil, {}, 0
+end
+
+local function loadRecipes()
+    return loadPage('qbdrugs:creator:recipes:get', 'Could not load the recipes.', setRecipes)
 end
 
 local function askAmount(label, title, current)
@@ -1178,7 +1187,7 @@ end
 local function saveRecipe(recipe, give, message)
     local result, err = QB.callback.trigger('qbdrugs:creator:recipes:set', recipe.id, give)
     if not result then return fail(err or 'Failed to save.') end
-    recipes.list, recipes.items = result.list or {}, result.items or {}
+    setRecipes(result)
 
     local updated = recipeEntry(recipe.id)
     local inRecipe = {}
@@ -1194,14 +1203,15 @@ local function recipeAction(actionId, values)
     end
 
     if actionId == 'recipe:create' then
-        local drug = type(values.drug) == 'string' and values.drug or ''
-        local name = type(values.name) == 'string' and values.name or ''
-        local item = type(values.item) == 'string' and values.item or ''
+        local drug = text(values.drug)
+        local name = text(values.name)
+        local item = text(values.item)
         local result, err = QB.callback.trigger('qbdrugs:creator:recipes:create', drug, name, item, tonumber(values.amount) or 1)
         if not result then return fail(err or 'Failed to create the recipe.') end
 
-        recipes.list, recipes.items = result.list or {}, result.items or {}
-        recipes.selected, recipes.query, recipes.results, recipes.total = result.id, nil, {}, 0
+        setRecipes(result)
+        recipes.selected = result.id
+        clearRecipeSearch()
         currentView = 'recipe'
         return refresh(notice('Recipe created. Add the items it needs below.'))
     end
@@ -1209,7 +1219,8 @@ local function recipeAction(actionId, values)
     local selectId = actionId:match('^recipe:select:(.+)$')
     if selectId then
         if not recipeEntry(selectId) then return fail('Unknown recipe.') end
-        recipes.selected, recipes.query, recipes.results, recipes.total = selectId, nil, {}, 0
+        recipes.selected = selectId
+        clearRecipeSearch()
         currentView = 'recipe'
         return refresh()
     end
@@ -1218,33 +1229,30 @@ local function recipeAction(actionId, values)
     if not recipe then return fail('Pick a recipe first.') end
 
     if actionId == 'recipe:receive' then
-        local item = type(values.item) == 'string' and values.item or ''
+        local item = text(values.item)
         local result, err = QB.callback.trigger('qbdrugs:creator:recipes:receive', recipe.id, item, tonumber(values.amount) or 1)
         if not result then return fail(err or 'Failed to save.') end
-        recipes.list, recipes.items = result.list or {}, result.items or {}
+        setRecipes(result)
         return refresh(notice('Saved.'))
     end
 
     if actionId == 'recipe:delete' then
-        local confirmation = QB.nui.openAlert({
-            title = 'Delete recipe?',
-            message = ('This removes %s. Events that used it go back to their default recipe.'):format(recipe.label),
-            confirmLabel = 'Delete',
-        })
-        if not confirmation or not confirmation.confirmed then return refresh() end
+        local message = ('This removes %s. Events that used it go back to their default recipe.'):format(recipe.label)
+        if not confirmed('Delete recipe?', message) then return refresh() end
 
         local result, err = QB.callback.trigger('qbdrugs:creator:recipes:delete', recipe.id)
         if not result then return fail(err or 'Failed to delete the recipe.') end
-        recipes.list, recipes.items = result.list or {}, result.items or {}
-        recipes.selected, recipes.query, recipes.results, recipes.total = nil, nil, {}, 0
+        setRecipes(result)
+        recipes.selected = nil
+        clearRecipeSearch()
         currentView = 'recipes'
         return refresh(notice('Recipe deleted.'))
     end
 
     if actionId == 'recipe:search' then
-        local query = type(values.query) == 'string' and values.query:match('^%s*(.-)%s*$') or ''
+        local query = text(values.query)
         if query == '' then
-            recipes.query, recipes.results, recipes.total = nil, {}, 0
+            clearRecipeSearch()
             return refresh()
         end
 
@@ -1300,18 +1308,12 @@ local function recipeAction(actionId, values)
 end
 
 local function loadCustoms()
-    local result, err = QB.callback.trigger('qbdrugs:creator:custom:get')
-    if not result then
-        QB.notify.send({ title = 'Drug Creator', message = err or 'Could not load the custom drugs.', type = 'error' })
-        return false
-    end
-    applyCustoms(result)
-    return true
+    return loadPage('qbdrugs:creator:custom:get', 'Could not load the custom drugs.', applyCustoms)
 end
 
 local function customAction(actionId, values)
     if actionId == 'custom:create' then
-        local name = type(values.name) == 'string' and values.name or ''
+        local name = text(values.name)
         local result, err = QB.callback.trigger('qbdrugs:creator:custom:drug:create', name)
         if not result then return fail(err or 'Failed to create the drug.') end
 
@@ -1320,10 +1322,10 @@ local function customAction(actionId, values)
     end
 
     if actionId == 'custom:event:create' then
-        local drugName = type(values.drug) == 'string' and values.drug or ''
+        local drugName = text(values.drug)
         if drugName == '' then return fail('Create a drug on the Custom drugs tab first.') end
 
-        local name = type(values.name) == 'string' and values.name or ''
+        local name = text(values.name)
         local result, err = QB.callback.trigger('qbdrugs:creator:custom:event:create', drugName, name)
         if not result then return fail(err or 'Failed to add the event.') end
 
@@ -1339,12 +1341,8 @@ local function customAction(actionId, values)
         end
         if not drug then return fail('Unknown drug.') end
 
-        local confirmation = QB.nui.openAlert({
-            title = 'Delete drug?',
-            message = ('This removes %s and all %d of its events. Its recipes stay on the Recipes page.'):format(drug.name, #drug.events),
-            confirmLabel = 'Delete',
-        })
-        if not confirmation or not confirmation.confirmed then return refresh() end
+        local message = ('This removes %s and all %d of its events. Its recipes stay on the Recipes page.'):format(drug.name, #drug.events)
+        if not confirmed('Delete drug?', message) then return refresh() end
 
         local result, err = QB.callback.trigger('qbdrugs:creator:custom:drug:delete', drug.name)
         if not result then return fail(err or 'Failed to delete the drug.') end
@@ -1358,12 +1356,7 @@ local function customAction(actionId, values)
     if actionId == 'custom:event:delete' then
         if not (selectedEvent and eventInfo(selectedEvent.step) and eventInfo(selectedEvent.step).custom) then return refresh() end
 
-        local confirmation = QB.nui.openAlert({
-            title = 'Delete event?',
-            message = ('This removes %s and all of its locations.'):format(selectedEvent.step),
-            confirmLabel = 'Delete',
-        })
-        if not confirmation or not confirmation.confirmed then return refresh() end
+        if not confirmed('Delete event?', ('This removes %s and all of its locations.'):format(selectedEvent.step)) then return refresh() end
 
         local result, err = QB.callback.trigger('qbdrugs:creator:custom:event:delete', selectedEvent.step)
         if not result then return fail(err or 'Failed to delete the event.') end
@@ -1380,12 +1373,8 @@ local function deleteBaseEvent()
     local info = selectedEvent and eventInfo(selectedEvent.step)
     if not (info and info.kind ~= 'lab' and not info.custom) then return refresh() end
 
-    local confirmation = QB.nui.openAlert({
-        title = 'Delete event?',
-        message = ('This removes %s and all of its locations. You can restore it from the Events page.'):format(info.label),
-        confirmLabel = 'Delete',
-    })
-    if not confirmation or not confirmation.confirmed then return refresh() end
+    local message = ('This removes %s and all of its locations. You can restore it from the Events page.'):format(info.label)
+    if not confirmed('Delete event?', message) then return refresh() end
 
     local result, err = QB.callback.trigger('qbdrugs:creator:event:delete', selectedEvent.step)
     if not result then return fail(err or 'Failed to delete the event.') end
@@ -1426,11 +1415,9 @@ local function onAction(actionId, context)
         if actionId == 'event:add' then return startEntrance(values) end
         if actionId == 'event:delete' then return deleteBaseEvent() end
         if actionId == 'event:place' then
-            local object = type(values.object) == 'string' and values.object:match('^%s*(.-)%s*$') or ''
-            if object ~= '' and not modelExists(object) then return fail('Unknown object model.') end
-            if object == '' then object = nil end
-            local gang = type(values.gang) == 'string' and values.gang:match('^%s*(.-)%s*$') or ''
-            if gang == '' then gang = nil end
+            local object = optionalText(values.object)
+            if object and not modelExists(object) then return fail('Unknown object model.') end
+            local gang = optionalText(values.gang)
             pendingTool, currentView = { kind = 'point', object = object, gang = gang }, 'event'
             return { close = true }
         end
@@ -1477,81 +1464,59 @@ QB.nui.registerApp({
     onAction = onAction,
 })
 
+-- Aims, then saves one placement, until the admin cancels. build(aimed) returns the place's data;
+-- save(place) returns ok, err.
+local function placeUntilCancelled(aim, build, save, title, once)
+    while true do
+        local aimed = aim()
+        local c = aimed and aimed.coords
+        if not c then return end
+
+        local ok, err = save(build(c, aimed))
+        if not ok then
+            toast(title, err)
+            return
+        end
+        if once then return end
+    end
+end
+
 local function runPendingTool()
     local tool = pendingTool
     pendingTool = nil
 
     if tool.kind == 'entrance' then
-        local aimed = QB.raycast.getCoords({})
-        local c = aimed and aimed.coords
-        if not c then return end
-
-        local ok, err = persistEvent({
-            locations = appended(selectedEvent.locations, {
-                enter = { x = c.x, y = c.y, z = c.z },
-                exit = tool.exit,
-                gang = tool.gang,
-            }),
-        })
-        if not ok then
-            QB.notify.send({ title = 'Drug Creator', message = err, type = 'error' })
-        end
-        return
-    end
-
-    if tool.kind == 'point' then
-        while true do
-            local aimed
-            if tool.object then
-                aimed = QB.raycast.getCoords({ type = 'object', object = tool.object })
-            else
-                aimed = QB.raycast.getCoords({})
-            end
-            local c = aimed and aimed.coords
-            if not c then return end
-
-            local ok, err = persistEvent({
-                locations = appended(selectedEvent.locations, {
-                    coords = { x = c.x, y = c.y, z = c.z, w = c.w or aimed.heading },
-                    object = tool.object,
-                    gang = tool.gang,
-                }),
-            })
-            if not ok then
-                QB.notify.send({ title = 'Drug Creator', message = err, type = 'error' })
-                return
-            end
-        end
-    end
-
-    if tool.kind == 'spot' then
-        while true do
-            local aimed = QB.raycast.getCoords({ type = 'object', object = selected.data.model })
-            local c = aimed and aimed.coords
-            if not c then return end
-
-            local ok, err = persist({
-                locations = appended(selected.locations, { coords = { x = c.x, y = c.y, z = c.z } }),
-            })
-            if not ok then
-                QB.notify.send({ title = 'Plant Creator', message = err, type = 'error' })
-                return
-            end
-        end
+        placeUntilCancelled(
+            function() return QB.raycast.getCoords({}) end,
+            function(c) return { enter = { x = c.x, y = c.y, z = c.z }, exit = tool.exit, gang = tool.gang } end,
+            function(place) return persistEvent({ locations = appended(selectedEvent.locations, place) }) end,
+            'Drug Creator', true)
+    elseif tool.kind == 'point' then
+        placeUntilCancelled(
+            function() return QB.raycast.getCoords(tool.object and { type = 'object', object = tool.object } or {}) end,
+            function(c, aimed) return { coords = { x = c.x, y = c.y, z = c.z, w = c.w or aimed.heading }, object = tool.object, gang = tool.gang } end,
+            function(place) return persistEvent({ locations = appended(selectedEvent.locations, place) }) end,
+            'Drug Creator')
+    elseif tool.kind == 'spot' then
+        placeUntilCancelled(
+            function() return QB.raycast.getCoords({ type = 'object', object = selected.data.model }) end,
+            function(c) return { coords = { x = c.x, y = c.y, z = c.z } } end,
+            function(place) return persist({ locations = appended(selected.locations, place) }) end,
+            'Plant Creator')
     end
 end
 
 local function open()
     local list, err = QB.callback.trigger('qbdrugs:creator:list')
     if not list then
-        QB.notify.send({ title = 'Plant Creator', message = err or 'Admin permission required.', type = 'error' })
+        toast('Plant Creator', err or 'Admin permission required.')
         return
     end
 
     corner.query, corner.results, corner.total = nil, {}, 0
     loadCorner()
     loadCustoms()
-    recipes.query, recipes.results, recipes.total = nil, {}, 0
+    clearRecipeSearch()
     loadRecipes()
 
     while true do

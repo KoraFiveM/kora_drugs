@@ -298,7 +298,8 @@ local function startCook(coords, offset, rotation)
 end
 
 local function runDials(coords)
-	if not exports['qb-minigames']:Lockpick() then
+	local result = QB.minigames.play("fishing", { speed = 'medium' })
+	if not result.success then
 		local heat = stations.heat
 		if heat and heat.explosion then
 			AddExplosion(coords.x, coords.y, coords.z, 49, 10, true, false, true)

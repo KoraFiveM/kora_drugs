@@ -1,15 +1,5 @@
--- server/plants.lua
 -- Loads plant types from `qbdrugs` (rows where step = '<Type>:pick'),
 -- publishes them to clients, and handles picking.
-
-local timed = {}
-local function timeout(src, time)
-    timed[src] = true
-    CreateThread(function()
-        Wait(time)
-        timed[src] = nil
-    end)
-end
 
 ---@class PlantLocation
 ---@field coords vector3
@@ -22,24 +12,24 @@ end
 ---@type table<string, PlantType>
 local Plants = {}
 local registered = {}
-local published = {} 
+local published = {}
 
 local function decodeLocations(raw)
-    local list = json.decode(raw or '[]') or {}
-    for _, loc in ipairs(list) do
-        local c = loc.coords
-        loc.coords = vec3(c.x, c.y, c.z)
-        loc.taken = false               
+    local list = {}
+    for _, loc in ipairs(decodeJson(raw, {})) do
+        local c = type(loc) == 'table' and loc.coords
+        if type(c) == 'table' and tonumber(c.x) and tonumber(c.y) and tonumber(c.z) then
+            list[#list + 1] = { coords = vec3(c.x, c.y, c.z), taken = false }
+        end
     end
     return list
 end
 
 local function loadPlants()
     Plants = {}
-    local rows = QB.sql.query('SELECT * FROM qbdrugs')
-    for _, row in ipairs(rows) do
+    for _, row in ipairs(QB.sql.query('SELECT * FROM `qbdrugs`') or {}) do
         local plantType, kind = row.step:match('^(%w+):([%w_]+)$')
-        local data = json.decode(row.data or '{}') or {}
+        local data = decodeJson(row.data, {})
         if kind == 'pick' and not data.disabled then
             Plants[plantType] = { data = data, locations = decodeLocations(row.locations) }
         end
@@ -49,12 +39,12 @@ end
 local function registerPick(plantType)
     RegisterNetEvent('qb_drugs:server:pick' .. plantType, function(id)
         local src = source
-        if timed[src] then return end
+        if onCooldown(src, 'pick') then return end
 
         local plant = Plants[plantType]
         local spot = plant and type(id) == 'number' and plant.locations[id]
         if not spot or spot.taken then return end
-        if not QB.distance.player(src, spot.coords, 3.0) then return end
+        if not isNear(src, spot.coords, 3.0) then return end
 
         spot.taken = true
         GlobalState[plantType] = plant.locations
@@ -69,7 +59,7 @@ local function registerPick(plantType)
         end)
 
         exports.qbinventory:addItem(src, plant.data.item, math.random(1, plant.data.maxGive or 1))
-        timeout(src, plant.data.pickingData and plant.data.pickingData.time or DefaultProgress.time)
+        startCooldown(src, 'pick', plant.data.pickingData and plant.data.pickingData.time or DefaultProgress.time)
     end)
 end
 
@@ -106,7 +96,7 @@ local function broadcastReload(plantType)
 end
 
 ---@param plantType string?
-local function reload(plantType)
+function ReloadPlants(plantType)
     refresh()
     if plantType then
         broadcastReload(plantType)
@@ -117,6 +107,6 @@ local function reload(plantType)
     end
 end
 
-exports('ReloadPlants', reload)
+exports('ReloadPlants', ReloadPlants)
 
 refresh()
