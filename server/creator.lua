@@ -1,11 +1,7 @@
--- server/Creator.lua
--- Admin-only callbacks behind the plant creator (client/Creator.lua).
--- Reads and writes the `qbdrugs` rows (step = '<Type>:pick') and asks
--- plantSpawns.lua to reload so clients pick up the change.
 
-local MAX_SPOTS = 200 -- most spots one plant type may have
-local maxRecipeItems = 20 -- most required items one recipe may have
-local maxRecipeAmount = 1000 -- most of one item a recipe may ask for
+local MAX_SPOTS = 200
+local maxRecipeItems = 20
+local maxRecipeAmount = 1000
 local recipesStep = 'Recipes:settings'
 
 local function fail(message)
@@ -28,13 +24,11 @@ local function decode(value, fallback)
     return (ok and type(decoded) == 'table' and decoded) or fallback
 end
 
--- Animation dictionaries and clips are plain names such as 'mp_arresting' or 'anim@heists@box_carry@'.
 local function animName(value)
     local name = trim(value, 64)
     return name and name:match('^[%w_@%-%.]+$') and name or nil
 end
 
--- number in [min, max], or nil. Rejects NaN, inf and non-numbers.
 local function inRange(value, min, max)
     local n = tonumber(value)
     if not n or n ~= n or n < min or n > max then return nil end
@@ -70,8 +64,6 @@ local function getRow(id)
     return rows and rows[1] or nil
 end
 
--- Row -> what the client edits. Locations are reduced to plain { coords = {x,y,z} }
--- so the runtime-only `taken` flag never leaves the server.
 local function toRecord(row)
     local locations = {}
     for _, loc in ipairs(decode(row.locations, {})) do
@@ -101,8 +93,6 @@ local function cleanLocations(list)
     return result
 end
 
--- Applies a whitelist of settings onto the stored data, leaving everything else
--- (pickingData.anim, pickingData.disable, ...) untouched.
 local function applySettings(data, s)
     if type(s) ~= 'table' then return data end
 
@@ -117,10 +107,10 @@ local function applySettings(data, s)
         data.item = item
     end
     if s.icon ~= nil then
-        data.icon = trim(s.icon, 64) -- empty clears it
+        data.icon = trim(s.icon, 64)
     end
     if s.targetLabel ~= nil then
-        data.targetLabel = trim(s.targetLabel, 64) -- empty clears it, falls back to the locale text
+        data.targetLabel = trim(s.targetLabel, 64)
     end
     if s.progressLabel ~= nil then
         data.progressLabel = trim(s.progressLabel, 64)
@@ -160,7 +150,7 @@ local function applySettings(data, s)
         local n = inRange(s.animFlag, 0, 65535)
         if not n then return nil, 'Animation flag must be between 0 and 65535.' end
         picking.anim.flag = math.floor(n)
-        picking.anim.flags = nil -- older entries used "flags"; one key is enough
+        picking.anim.flags = nil
     end
     if s.disable ~= nil then
         if type(s.disable) ~= 'table' then return nil, 'Invalid disable list.' end
@@ -218,7 +208,7 @@ QB.callback.register('qbdrugs:creator:create', function(src, name, model, item)
         return fail('Name must be letters and numbers only, starting with a letter.')
     end
     if getRow(name) then return fail('That plant already exists.') end
-    -- plant types publish to GlobalState[name] and GlobalState[name .. 'Data']
+
     if GlobalState[name] ~= nil or GlobalState[name .. 'Data'] ~= nil then
         return fail('That name is already in use by something else.')
     end
@@ -283,26 +273,9 @@ QB.callback.register('qbdrugs:creator:delete', function(src, id)
     reload(id)
     return true
 end)
--- Events (rows that are not plants, e.g. step = 'Cocaine:lab')
---
---   Cocaine:lab      locations = [ { enter, exit, gang? } ]
---   Cocaine:powder   locations = [ { coords, object?, gang? } ]   (coords = x,y,z and w when aimed at an object; object = prop model; gang = who may use it)
---   Crack:cook       same layout as powder
---   Crack:bagging    same layout as powder
---   Heroin:drying, Heroin:vials, Heroin:syringe   same layout as powder
---   Cocaine:cutting  locations = { coords, offset, rotation }  (one object, fixed, never edited)
---   Cocaine:bagging  same layout as cutting
---   Meth:tele        same layout as Cocaine:lab (many entrances, one exit)
---   Meth:pour/heat/smash/bag   data = target text; locations = { coords, offset, rotation, ... } (one object, edited in the creator)
---                              pour { coords, offset, rotation }   heat { coords, explosion }
---                              smash { coords, offset, rotation, size, bucket }   bag { coords, offset, rotation, size }
---   Weed:lab         same layout as Cocaine:lab (many entrances, one exit)
---   Weed:drying, Weed:breakNugs, Weed:bagWeed   same layout as powder
---
--- To add another event: add a row to EVENT_TYPES below and an entry to EVENTS in client/creator.lua.
 
 local MAX_EVENT_LOCATIONS = 50
-local COORD_LIMIT = 10000.0 -- GTA's map is well inside this
+local COORD_LIMIT = 10000.0
 
 local function cleanVec(value)
     if type(value) ~= 'table' then return nil end
@@ -311,15 +284,12 @@ local function cleanVec(value)
     return { x = x, y = y, z = z }
 end
 
--- gang is optional: '' (or nothing) means the entrance is open to everyone.
 local function cleanGang(value)
     local gang = trim(value, 32)
     if not gang then return nil end
     return gang:match('^[%w_%-]+$') and gang or false
 end
 
--- One entry per entrance: { enter = {x,y,z}, exit = {x,y,z}, gang = 'name' | nil }.
--- Entrances may share the same exit (many doors, one room).
 local function cleanEntrances(list)
     if type(list) ~= 'table' then return nil, 'Invalid locations.' end
     local result = {}
@@ -330,12 +300,11 @@ local function cleanEntrances(list)
         if not enter or not exit then return nil, 'Every location needs an enter and an exit.' end
         local gang = cleanGang(entry.gang)
         if gang == false then return nil, 'Gang may only contain letters, numbers, _ and -.' end
-        result[#result + 1] = { enter = enter, exit = exit, gang = gang } -- gang = nil is dropped from the JSON
+        result[#result + 1] = { enter = enter, exit = exit, gang = gang }
     end
     return result
 end
 
--- Point coords: {x,y,z} plus an optional heading w, so object placements keep the vec4 they were aimed as.
 local function cleanPointCoords(value)
     local coords = cleanVec(value)
     if not coords then return nil end
@@ -347,14 +316,12 @@ local function cleanPointCoords(value)
     return coords
 end
 
--- Prop model name, optional: '' or nothing = none, anything odd = false.
 local function cleanObject(value)
     local object = trim(value, 64)
     if not object then return nil end
     return object:match('^[%w_%-%.]+$') and object or false
 end
 
--- One entry per spot: { coords = {x,y,z}, object = 'model' | nil, gang = 'name' | nil }
 local function cleanPoints(list)
     if type(list) ~= 'table' then return nil, 'Invalid locations.' end
     local result = {}
@@ -366,12 +333,11 @@ local function cleanPoints(list)
         if object == false then return nil, 'Object may only contain letters, numbers, _, - and .' end
         local gang = cleanGang(entry.gang)
         if gang == false then return nil, 'Gang may only contain letters, numbers, _ and -.' end
-        result[#result + 1] = { coords = coords, object = object, gang = gang } -- nil values are dropped from the JSON
+        result[#result + 1] = { coords = coords, object = object, gang = gang }
     end
     return result
 end
 
--- Same as cleanPoints, but skips bad entries instead of failing (used when reading a stored row).
 local function readPoints(raw)
     local result = {}
     for _, entry in ipairs(decode(raw, {})) do
@@ -381,7 +347,6 @@ local function readPoints(raw)
     return result
 end
 
--- Keys the progress bar may disable. Accepts { move = true } or { 'move' }.
 local function cleanDisable(value)
     local allowed = {}
     for _, option in ipairs(ProgressDisableOptions) do allowed[option.value] = true end
@@ -397,13 +362,11 @@ local function cleanDisable(value)
     return disable
 end
 
--- Defaults ---------------------------------------------------------------------------
 
 local function labDefaults()
     return { enterTarget = 'Enter Lab', exitTarget = 'Exit Lab' }
 end
 
--- Events with a progress bar and animation (powder, crack cook, crack bagging).
 local function progressDefaults(progressLabel, targetLabel, targetIcon)
     return function()
         return {
@@ -437,7 +400,6 @@ local function baggingDefaults()
     return { targetLabel = 'bag cocaine', targetIcon = 'box' }
 end
 
--- do not touch | like seriously no touch
 local function cuttingLocation()
     return {
         coords = { x = 1095.61, y = -3195.62, z = -39.13 },
@@ -446,7 +408,6 @@ local function cuttingLocation()
     }
 end
 
--- do not touch | like seriously no touch
 local function baggingLocation()
     return {
         coords = { x = 1093.16, y = -3195.78, z = -39.19 },
@@ -454,9 +415,6 @@ local function baggingLocation()
         rotation = { x = 0.0, y = 0.0, z = 180.0 },
     }
 end
-
--- Data cleaners: take what the creator (or the database) holds, return the clean table
--- with defaults filled in, or nil and a message.
 
 local function cleanLabData(data)
     if type(data) ~= 'table' then return nil, 'Invalid data.' end
@@ -516,8 +474,6 @@ local cleanWeedDryingData = progressCleaner(weedDryingDefaults)
 local cleanWeedBreakNugsData = progressCleaner(weedBreakNugsDefaults)
 local cleanWeedBagData = progressCleaner(weedBagDefaults)
 
--- Events that only have target text (cutting, bagging, meth steps). Every key in the
--- defaults is a trimmed string (max 64) that falls back to its default.
 local function textCleaner(defaultsFn)
     return function(data)
         if type(data) ~= 'table' then return nil, 'Invalid data.' end
@@ -529,7 +485,6 @@ local function textCleaner(defaultsFn)
     end
 end
 
--- Defaults for a text-only event: a function that returns a fresh copy of `template`.
 local function textDefaults(template)
     return function()
         local copy = {}
@@ -538,7 +493,6 @@ local function textDefaults(template)
     end
 end
 
--- Meth text, same as the locale file.
 local methPourDefaults = textDefaults({
     targetLabel = 'Pour Chemicals', targetIcon = 'fa-solid fa-flask',
     trayLabel = 'Grab Tray', trayIcon = 'fa-solid fa-hand-paper',
@@ -547,7 +501,6 @@ local methHeatDefaults = textDefaults({ targetLabel = 'Heat Chemicals', targetIc
 local methSmashDefaults = textDefaults({ targetLabel = 'Smash Meth', targetIcon = 'fa-solid fa-hammer' })
 local methBagDefaults = textDefaults({ targetLabel = 'Bag Meth', targetIcon = 'fa-solid fa-bag-shopping' })
 
--- A weed station's current position (steps.drying / breakNugs / bagWeed), used to create the first row.
 local function weedPointSeed(step)
     return function()
         local steps = Config and Config.Weed and Config.Weed.steps
@@ -558,14 +511,6 @@ local function weedPointSeed(step)
 end
 
 local function noLocations() return {} end
-
--- Meth stations ---------------------------------------------------------------------------
--- 'Meth:pour', 'Meth:heat', 'Meth:smash' and 'Meth:bag' keep their target text in data and where the
--- station is in locations: one object, like Cocaine:cutting.
---   pour  { coords, offset, rotation }          heat  { coords, explosion }
---   smash { coords, offset, rotation, size, bucket = {x,y,z,w} }     bag { coords, offset, rotation, size }
--- The values below are only the starting point: they create the row the first time (or fill a row that has
--- no position yet). After that the row, edited in the creator, is the only source.
 
 local METH_STATION_PARTS = {
     pour = { 'coords', 'offset', 'rotation' },
@@ -603,7 +548,6 @@ local function methStationLocation(name)
     }
 end
 
--- x, y, z each within +-limit, or nil.
 local function limitedVec(value, limit)
     if type(value) ~= 'table' then return nil end
     local x, y, z = inRange(value.x, -limit, limit), inRange(value.y, -limit, limit), inRange(value.z, -limit, limit)
@@ -634,8 +578,6 @@ local methStationRules = {
     },
 }
 
--- Whatever the creator sends, as a clean location. A part that is left out keeps its starting value;
--- a part that is there but wrong is an error. coords are always required.
 local function cleanMethStation(name)
     return function(value)
         if type(value) ~= 'table' then return nil, 'Invalid location.' end
@@ -667,7 +609,6 @@ local function cleanMethStation(name)
     end
 end
 
--- Stored text -> what the creator shows. A row with no usable position yet shows the starting values.
 local function readMethStation(name, raw)
     local clean = cleanMethStation(name)(decode(raw, {}))
     return clean or methStationLocation(name)
@@ -680,18 +621,13 @@ local function methStationEvent(name, defaultsFn)
         cleanLocations = cleanMethStation(name),
         readLocations = function(raw) return readMethStation(name, raw) end,
         seedLocations = function() return methStationLocation(name) end,
-        fillLocations = true, -- an existing row with no position yet (the old text-only rows) gets one
+        fillLocations = true,
     }
 end
 
--- Cornerselling ---------------------------------------------------------------------------
--- One row, 'CornerSelling:settings', holds every cornerselling value:
---   data = { maxSell, ripOff, minPolice, weedPercentAdjustable, weedPercentFlow, pricing = { [item] = cash } }
--- The starting values come from CornerSelling in shared/config.lua (copied once, on first start).
 
 local MAX_CORNER_ITEMS = 500
 local MAX_CORNER_PRICE = 1000000
-
 local function cornerDefaults()
     local source = type(CornerSelling) == 'table' and CornerSelling or {}
     local pricing = {}
@@ -706,8 +642,6 @@ local function cornerDefaults()
     }
 end
 
--- Any value left out keeps its starting value; `pricing` is replaced as a whole, so the creator
--- always sends the full list.
 local function cleanCornerData(data)
     if type(data) ~= 'table' then return nil, 'Invalid data.' end
     local clean = cornerDefaults()
@@ -755,19 +689,10 @@ local function cleanCornerData(data)
     return clean
 end
 
--- Recipes ---------------------------------------------------------------------------------
--- One row, 'Recipes:settings', holds every edited recipe:
---   data = { recipes = { [id] = { give = { { item, amount, keep? } } } } }
--- Recipes from Config (shared/recipes.lua) can only have their list of required items changed; a recipe
--- with no entry keeps the list from the config.
--- Recipes made here are stored as { custom = true, receive = { item, amount } | nil, give = { ... } }
--- under their id ('<Drug>:<name>') and can be deleted again.
-
 local function recipesDefaults()
     return { recipes = {} }
 end
 
--- A list of required items from the creator -> the clean list, or nil and a message.
 local function cleanGive(list)
     if type(list) ~= 'table' then return nil, 'Invalid item list.' end
     local clean, seen = {}, {}
@@ -787,7 +712,6 @@ local function cleanGive(list)
     return clean
 end
 
--- What a custom recipe makes: { item, amount }, or nil for "nothing by itself". The item must be a plain item name.
 local function cleanReceive(receive)
     if type(receive) ~= 'table' then return nil end
     local item = trim(receive.item, 64)
@@ -799,12 +723,10 @@ local function cleanReceive(receive)
     return { item = item, amount = math.floor(amount) }
 end
 
--- '<Drug>:<name>', letters and numbers, starting with a letter. A config recipe's id can't be reused.
 local function validRecipeId(id)
     return type(id) == 'string' and #id <= 48 and id:match('^%a%w*:%a%w*$') ~= nil
 end
 
--- Unknown recipe ids are skipped, so a recipe removed from the config never breaks the stored row.
 local function cleanRecipeData(data)
     if type(data) ~= 'table' then return nil, 'Invalid data.' end
     local clean = recipesDefaults()
@@ -830,13 +752,6 @@ end
 local cleanCuttingData = textCleaner(cuttingDefaults)
 local cleanBaggingData = textCleaner(baggingDefaults)
 
--- Custom drugs and events ---------------------------------------------------------------
--- Made on the creator's "Custom drugs" page. One row, 'Custom:settings', lists the drug names:
---   data.drugs = { 'Opium', ... }
--- Every event of a custom drug is its own row, '<Drug>:<event>', laid out exactly like 'Cocaine:powder'
--- (progress, anim, targetLabel, targetIcon, locations with coords / object / gang) plus
---   data.custom = true   which tells the client and server to run it (see shared/steps.lua)
---   data.recipe          the recipe it runs, picked on the event's page (none = it does nothing yet)
 local customStep = 'Custom:settings'
 
 local function customDrugsDefaults()
@@ -855,7 +770,6 @@ local function cleanCustomDrugs(data)
     return clean
 end
 
--- The powder event's defaults, marked as custom.
 local function customEventDefaults()
     local data = progressDefaults('Working', 'interact', 'BriefCase')()
     data.custom = true
@@ -869,26 +783,12 @@ local CUSTOM_EVENT = {
     readLocations = readPoints,
 }
 
--- The drug names saved on the Custom drugs page.
 local function customDrugNames()
     local rows = QB.sql.query('SELECT `data` FROM `qbdrugs` WHERE `step` = ? LIMIT 1', { customStep })
     local row = rows and rows[1]
     local clean = row and cleanCustomDrugs(decode(row.data, {}))
     return clean and clean.drugs or {}
 end
-
--- One row per event.
---   defaults       fresh default data
---   cleanData      validates data coming from the creator
---   cleanLocations validates locations coming from the creator (nil = locations can't be edited)
---   readLocations  turns the stored locations text into what the creator shows
---   fixedLocations when set, this is always what gets stored, whatever the creator sends
---   afterSave      when set, runs on the server with the clean data after every successful save
---   seedLocations  when set, the row is created with this on start if it doesn't exist yet
---
--- Shared shapes, so a new event is one line:
---   labEvent(seed)      many entrances, one exit (data = enterTarget / exitTarget)
---   textEvent(defaults) target text only, no locations
 
 local function labEvent(seedLocations)
     return {
@@ -900,14 +800,6 @@ local function labEvent(seedLocations)
     }
 end
 
-local function textEvent(defaultsFn)
-    return {
-        defaults = defaultsFn,
-        cleanData = textCleaner(defaultsFn),
-        fixedLocations = noLocations,
-        readLocations = noLocations,
-    }
-end
 
 local EVENT_TYPES = {
     [customStep] = {
@@ -1007,17 +899,14 @@ local EVENT_TYPES = {
     },
 }
 
--- Event names that can't be used: they would clash with plants and settings rows.
 local RESERVED_STEPS = { pick = true, settings = true }
 
--- 'Opium:cook' -> 'Opium', 'cook' when it is a well-formed custom step name, else nothing.
 local function splitCustomStep(step)
     if type(step) ~= 'string' or #step > 49 then return end
     local drug, name = step:match('^(%a%w*):(%a[%w_]*)$')
     if drug and #drug <= 24 and #name <= 24 and not RESERVED_STEPS[name] then return drug, name end
 end
 
--- A drug name the config or the built-in events already use, in any capitalisation.
 local function takenDrugName(name)
     local lower = name:lower()
     for _, known in ipairs(customDrugNames()) do
@@ -1033,7 +922,6 @@ local function takenDrugName(name)
     return false
 end
 
--- The rules for one step: a built-in event's, or the custom event's when its drug was made here.
 local function kindFor(step)
     if EVENT_TYPES[step] then return EVENT_TYPES[step] end
     local drug = splitCustomStep(step)
@@ -1047,14 +935,12 @@ local function validStep(step)
     return kindFor(step) ~= nil
 end
 
--- Steps that run a recipe (defaultRecipes) keep the one the creator picked in data.recipe.
--- A missing or unknown id falls back to the step's default.
 local function withRecipe(step, data, chosen)
     local default = defaultRecipes[step]
     if default then
         data.recipe = recipeInfo[chosen] and chosen or default
     elseif data.custom then
-        data.recipe = recipeInfo[chosen] and chosen or nil -- custom events have no default recipe
+        data.recipe = recipeInfo[chosen] and chosen or nil
     end
     return data
 end
@@ -1066,13 +952,11 @@ local function getEvent(step)
     if not row then
         return { data = withRecipe(step, kind.defaults()), locations = kind.readLocations(nil) }, false
     end
-    -- a stored row that no longer validates falls back to the defaults
     local stored = decode(row.data, {})
     local data = withRecipe(step, kind.cleanData(stored) or kind.defaults(), stored.recipe)
     return { data = data, locations = kind.readLocations(row.locations) }, true
 end
 
--- Validates and stores one event row, then tells everything that cares. Returns the saved entry, or false and a message.
 local function saveEvent(step, patch)
     if not validStep(step) then return fail('Unknown event.') end
     if type(patch) ~= 'table' then return fail('Nothing to save.') end
@@ -1117,7 +1001,6 @@ local function saveEvent(step, patch)
     return { step = step, data = data, locations = locations }
 end
 
--- Same as QB.callback.register, but only admins get in.
 local function adminCallback(name, handler)
     QB.callback.register(name, function(src, ...)
         local allowed, err = adminOnly(src)
@@ -1137,14 +1020,10 @@ adminCallback('qbdrugs:creator:event:save', function(_, step, patch)
     return saveEvent(step, patch)
 end)
 
--- Cornerselling item picker -----------------------------------------------------------------
--- The settings and the price list are saved through qbdrugs:creator:event:save
--- ('CornerSelling:settings'). These two callbacks only add what the item picker needs.
 
 local CORNER_STEP = 'CornerSelling:settings'
 local MAX_ITEM_RESULTS = 24
 
--- Every item the server knows about, keyed by item name.
 local function allItems()
     local ok, items = pcall(function() return exports['qb-core']:GetShared('Items') end)
     if ok and type(items) == 'table' then return items end
@@ -1157,14 +1036,12 @@ local function itemImage(info)
     return type(info.image) == 'string' and info.image ~= '' and ('nui://qbinventory/images/' .. info.image) or nil
 end
 
--- { label, image } for one item name, or nil when the server doesn't know it.
 local function itemEntry(shared, name)
     local info = shared[name]
     if type(info) ~= 'table' then return nil end
     return { label = tostring(info.label or name), image = itemImage(info) }
 end
 
--- Items whose name or label contains `query`, best first. isAdded(name) marks the ones already in the list.
 local function searchItems(query, isAdded)
     query = trim(query, 64)
     if not query then return fail('Type part of an item name or label to search.') end
@@ -1189,7 +1066,6 @@ local function searchItems(query, isAdded)
     return { results = results, total = total }
 end
 
--- The stored settings plus the label and image of every priced item.
 adminCallback('qbdrugs:creator:corner:get', function()
     local event = getEvent(CORNER_STEP)
     local shared, items = allItems(), {}
@@ -1204,17 +1080,11 @@ adminCallback('qbdrugs:creator:corner:search', function(_, query)
     return searchItems(query, function(name) return priced[name] ~= nil end)
 end)
 
--- Recipe picker -----------------------------------------------------------------------------
--- Edits go through saveEvent ('Recipes:settings'); these callbacks add the list, the item search and the
--- one-recipe save the picker needs.
-
--- The list of required items a recipe uses right now: the saved one, or the config's.
 local function effectiveGive(saved, id)
     local entry = saved[id]
     return entry and entry.give or copyGive(recipeInfo[id].defaultGive)
 end
 
--- Every recipe with its current required items, plus the label and image of every item it mentions.
 local function recipesPayload()
     local saved = getEvent(recipesStep).data.recipes or {}
     local shared, list, items = allItems(), {}, {}
@@ -1251,7 +1121,6 @@ adminCallback('qbdrugs:creator:recipes:search', function(_, query, id)
     return searchItems(query, function(name) return inRecipe[name] == true end)
 end)
 
--- Replaces the required items of one recipe. The creator sends the whole new list.
 adminCallback('qbdrugs:creator:recipes:set', function(_, id, give)
     if not recipeInfo[id] then return fail('Unknown recipe.') end
 
@@ -1261,7 +1130,6 @@ adminCallback('qbdrugs:creator:recipes:set', function(_, id, give)
     local data = getEvent(recipesStep).data
     data.recipes = data.recipes or {}
 
-    -- items that were already in the recipe are kept as they are; new ones must exist
     local current = {}
     for _, entry in ipairs(effectiveGive(data.recipes, id)) do current[entry.item] = true end
     for _, entry in ipairs(clean) do
@@ -1271,15 +1139,13 @@ adminCallback('qbdrugs:creator:recipes:set', function(_, id, give)
     end
 
     local entry = data.recipes[id] or {}
-    entry.give = clean -- a custom recipe keeps its custom flag and what it makes
+    entry.give = clean
     data.recipes[id] = entry
     local saved, saveErr = saveEvent(recipesStep, { data = data })
     if not saved then return fail(saveErr) end
     return recipesPayload()
 end)
 
--- Makes a new recipe: { drug, name, item, amount }. It starts with nothing required; the required items
--- are added on its page like any other recipe.
 adminCallback('qbdrugs:creator:recipes:create', function(_, drug, name, item, amount)
     drug, name = trim(drug, 24), trim(name, 24)
     local id = drug and name and (drug .. ':' .. name)
@@ -1304,7 +1170,6 @@ adminCallback('qbdrugs:creator:recipes:create', function(_, drug, name, item, am
     return payload
 end)
 
--- Changes what a custom recipe makes. An empty item makes it "nothing by itself".
 adminCallback('qbdrugs:creator:recipes:receive', function(_, id, item, amount)
     if not (recipeInfo[id] and recipeInfo[id].custom) then return fail('Only recipes made here can change what they make.') end
 
@@ -1322,7 +1187,6 @@ adminCallback('qbdrugs:creator:recipes:receive', function(_, id, item, amount)
     return recipesPayload()
 end)
 
--- Deletes a custom recipe. Events that were set to it go back to their default recipe.
 adminCallback('qbdrugs:creator:recipes:delete', function(_, id)
     if not (recipeInfo[id] and recipeInfo[id].custom) then return fail('Only recipes made here can be deleted.') end
 
@@ -1335,8 +1199,6 @@ adminCallback('qbdrugs:creator:recipes:delete', function(_, id)
     return recipesPayload()
 end)
 
--- Custom drugs picker -------------------------------------------------------------------
--- Every custom drug with its events: { drugs = { { name, events = { { step, name } } } } }
 local function customPayload()
     local drugs, byName = {}, {}
     for _, name in ipairs(customDrugNames()) do
@@ -1357,7 +1219,6 @@ local function customPayload()
     return { drugs = drugs }
 end
 
--- Deletes one event row and tells clients it is gone.
 local function dropEvent(step)
     local ok, err = QB.sql.update('DELETE FROM `qbdrugs` WHERE `step` = ?', { step })
     if not ok then return false, err end
@@ -1386,7 +1247,6 @@ adminCallback('qbdrugs:creator:custom:drug:create', function(_, name)
     return payload
 end)
 
--- Deletes the drug and all of its events. Recipes made for it on the Recipes page stay.
 adminCallback('qbdrugs:creator:custom:drug:delete', function(_, name)
     local data = getEvent(customStep).data
     local kept, found = {}, false
@@ -1410,7 +1270,6 @@ adminCallback('qbdrugs:creator:custom:drug:delete', function(_, name)
     return customPayload()
 end)
 
--- A new event starts as a copy of the powder event's format, named after itself.
 adminCallback('qbdrugs:creator:custom:event:create', function(_, drug, name)
     name = trim(name, 25)
     if not (name and #name <= 24 and name:match('^%a[%w_]*$')) then
@@ -1444,7 +1303,7 @@ adminCallback('qbdrugs:creator:custom:event:delete', function(_, step)
 end)
 
 CreateThread(function()
-    Wait(1000) -- let events.lua publish first; ReloadEvents below then pushes the new rows
+    Wait(1000)
     while GetResourceState('qbsql') ~= 'started' do Wait(500) end
 
     for step, kind in pairs(EVENT_TYPES) do
@@ -1480,3 +1339,8 @@ CreateThread(function()
         end
     end
 end)
+
+RegisterCommand('drugCreator', function(source, args)
+    assert(adminOnly(source), 'Player: ' .. tostring(source) .. ' Tried To Open The Drug Creator')
+    TriggerClientEvent('qbdrugs:creator:open', source)
+end, false)

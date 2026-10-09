@@ -1,5 +1,3 @@
--- fxmanifest lists this file and then globs client/**.lua, so it loads twice.
--- Without this every OnDrugs listener below registers twice (two targets per location).
 if qbdrugsFunctionsLoaded then return end
 qbdrugsFunctionsLoaded = true
 
@@ -62,12 +60,6 @@ function basicTarget(coords, rotation, step, event, key)
     })
 end
 
--- Drugs[Type][step] = { data = {...}, locations = {...} }, e.g. Drugs.Cocaine.lab.
--- Filled once from GlobalState.Drugs. After that the server sends only the entry that
--- changed, so a lab save never touches plants (or any other step).
---
--- OnDrugs('Cocaine', 'lab', function(entry) ... end) runs once the data is in and again
--- only when THAT entry changes, so a file rebuilds just its own zones.
 Drugs = {}
 
 local drugsLoaded = false
@@ -117,8 +109,6 @@ function inGang(gang)
     return player and player.gang and player.gang.name == gang or false
 end
 
--- Runs one entry of craftSteps: checks, progressbar (or the step's own run hook), then the
--- single server event. The server looks the recipe up again from drug + step.
 function craftTrigger(drug, step, data, location, key)
     local name = drug .. ':' .. step
     local info = craftSteps[name] or {} -- a custom event has no entry
@@ -214,8 +204,6 @@ function LabTeleport(name, locale)
     end
 end
 
--- One zone builder for every step in craftSteps. Locations are either a list (powder, cook,
--- drying...) or a single object (cutting, bagging); both end up with a key for the server.
 local craftZones = {}
 
 local function clearCraft(name)
@@ -275,8 +263,6 @@ for name in pairs(craftSteps) do
     end
 end
 
--- Events made on the creator's Custom drugs page: any row marked data.custom that shared/steps.lua
--- doesn't list gets the same targets as a built-in step, the first time its row shows up.
 watchCustom = function(drug, step)
     local name = drug .. ':' .. step
     if craftSteps[name] or drugsListeners[name] then return end

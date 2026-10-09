@@ -5,30 +5,14 @@ local selected = nil
 local selectedEvent = nil
 local currentView = 'plants'
 local pendingTool = nil
-
--- Cornerselling page: the stored settings, a label/image for every priced item, and the last search.
 local CORNER_STEP = 'CornerSelling:settings'
 local corner = { data = nil, items = {}, query = nil, results = {}, total = 0 }
-
--- Recipes page: every recipe in the config with its required items, a label/image for every item shown,
--- the selected recipe id and the last item search.
 local recipes = { list = {}, items = {}, selected = nil, query = nil, results = {}, total = 0 }
-
--- Custom drugs page: every drug made here with its events, and the one that is open.
 local customs = { drugs = {}, selected = nil }
-
--- Event types the creator can edit. Add the next event here (and in server/creator.lua).
--- kind picks which editor the event gets:
---   'lab'    many entrances, one exit (`exit` is where every entrance leads)
---   'points' placeable locations with progress bar + animation (text defaults in `points`)
---   'text'   target text only, position fixed (fields in `text`)
---   'station' target text (fields in `text`) plus an editable position: coords, and the parts listed in
---            `station` ('offset', 'rotation', 'size', 'bucket', 'explosion')
 local COCAINE_LAB_EXIT = { x = 1088.81, y = -3187.57, z = -38.99 }
 local METH_LAB_EXIT = { x = 996.91, y = -3200.83, z = -36.39 }
 local WEED_LAB_EXIT = { x = 1066.4, y = -3183.36, z = -39.16 }
 
--- { 'Pour', 'targetLabel', 'targetIcon', 'Pour Chemicals', 'fa-solid fa-flask' }, ... -> label + icon field per entry
 local function targetFields(...)
     local fields = {}
     for _, t in ipairs({ ... }) do
@@ -80,7 +64,6 @@ local EVENTS = {
       text = { noun = 'bagging bucket', fields = targetFields({ 'Target', 'targetLabel', 'targetIcon', 'Bag Meth', 'fa-solid fa-bag-shopping' }) } },
 }
 
--- The custom drug and event a step belongs to, if it was made on the Custom drugs page.
 local function customEvent(step)
     for _, drug in ipairs(customs.drugs) do
         for _, event in ipairs(drug.events) do
@@ -93,8 +76,6 @@ local function eventInfo(step)
     for _, event in ipairs(EVENTS) do
         if event.step == step then return event end
     end
-
-    -- a custom event is a Cocaine Powder copy: same editor, same settings
     local drug, event = customEvent(step)
     if event then
         return {
@@ -323,7 +304,6 @@ local function labView(info)
     }
 end
 
--- { move = true, combat = true } -> { 'combat', 'move' } for the multiselect
 local function disableList(map)
     local list = {}
     for key, on in pairs(map or {}) do
@@ -333,7 +313,6 @@ local function disableList(map)
     return list
 end
 
--- { 'move', 'combat' } -> { move = true, combat = true } for saving
 local function disableMap(list)
     local map = {}
     for _, key in ipairs(type(list) == 'table' and list or {}) do map[key] = true end
@@ -400,7 +379,6 @@ local function pointsView(info)
     }
 end
 
--- Events that only have target text and a fixed position (kind = 'text').
 local function textView(info)
     local data = selectedEvent.data or {}
 
@@ -425,7 +403,6 @@ local function textView(info)
     }
 end
 
--- Meth stations (kind = 'station'): target text plus where the station is and how its animation lines up.
 local STATION_PARTS = {
     coords = { label = 'Position', min = -10000, max = 10000 },
     offset = { label = 'Scene offset', min = -500, max = 500 },
@@ -493,8 +470,6 @@ local function stationView(info)
     }
 end
 
--- Every recipe an event can run, as "Cocaine · Powdering → coke_powder". The items themselves
--- are edited on the Recipes page.
 local function recipeField(step, data)
     local default = defaultRecipes[step]
     local custom = data.custom == true
@@ -502,7 +477,7 @@ local function recipeField(step, data)
 
     local options = {}
     if custom then
-        options[1] = { value = 'none', label = 'None (does nothing yet)' } -- the NUI rejects an empty option value
+        options[1] = { value = 'none', label = 'None (does nothing yet)' }
     end
     for _, id in ipairs(recipeIds) do
         local info = recipeInfo[id]
@@ -518,7 +493,6 @@ local function recipeField(step, data)
     }
 end
 
--- Puts the recipe picker at the top of the event's settings form.
 local function withRecipeField(view, info)
     local field = recipeField(info.step, selectedEvent.data or {})
     if not field then return view end
@@ -544,8 +518,6 @@ local function eventView()
     if info.kind == 'station' then return withRecipeField(stationView(info), info) end
     return labView(info)
 end
-
--- Custom drugs -------------------------------------------------------------------------------
 
 local function selectedCustom()
     for _, drug in ipairs(customs.drugs) do
@@ -620,8 +592,6 @@ local function customView()
     }
 end
 
--- Cornerselling -----------------------------------------------------------------------------
-
 local function money(value)
     return ('$%d'):format(math.floor(tonumber(value) or 0))
 end
@@ -631,7 +601,6 @@ local function itemLabel(name)
     return info and info.label or name
 end
 
--- A copy of the stored settings that can be changed and sent back.
 local function cornerCopy()
     local copy = {}
     for key, value in pairs(corner.data or {}) do copy[key] = value end
@@ -751,8 +720,6 @@ local function cornerView()
     }
 end
 
--- Recipes -----------------------------------------------------------------------------------
-
 local function recipeEntry(id)
     for _, recipe in ipairs(recipes.list) do
         if recipe.id == id then return recipe end
@@ -777,7 +744,6 @@ local function needsText(recipe)
     return #parts > 0 and table.concat(parts, ', ') or 'Nothing'
 end
 
--- A copy of a recipe's required items that can be changed and sent back.
 local function giveCopy(recipe)
     local copy = {}
     for _, entry in ipairs(recipe.give) do
@@ -786,7 +752,6 @@ local function giveCopy(recipe)
     return copy
 end
 
--- The drugs that have a recipe, for the "new recipe" dropdown.
 local function recipeDrugs()
     local seen, drugs = {}, {}
     for _, recipe in ipairs(recipes.list) do
@@ -808,7 +773,6 @@ end
 local function recipesView()
     local items = {}
     for _, recipe in ipairs(recipes.list) do
-        -- built with insert, never with `x and {...} or nil` in the middle: a hole becomes null in the UI
         local metadata = { { label = 'Needs', value = needsText(recipe) } }
         if recipe.custom then metadata[#metadata + 1] = { label = 'Status', value = 'Custom' } end
         if recipe.edited then metadata[#metadata + 1] = { label = 'Status', value = 'Edited' } end
@@ -974,9 +938,6 @@ local function fail(message)
     return refresh(notice(message, 'destructive'))
 end
 
--- Actions
-
--- Saves a patch and keeps the server's copy. Returns true, or false and a message.
 local function persist(patch)
     local result, err = QB.callback.trigger('qbdrugs:creator:save', selected.id, patch)
     if not result then return false, err or 'Failed to save.' end
@@ -1041,8 +1002,6 @@ local function deleteSelected()
     return refresh(notice('Plant deleted.'))
 end
 
--- Events
-
 local function persistEvent(patch)
     local result, err = QB.callback.trigger('qbdrugs:creator:event:save', selectedEvent.step, patch)
     if not result then return false, err or 'Failed to save.' end
@@ -1088,7 +1047,7 @@ local function saveEventData(values)
     end
 
     if defaultRecipes[selectedEvent.step] or eventInfo(selectedEvent.step).custom then
-        data.recipe = values.recipe ~= 'none' and values.recipe or nil -- 'none' = no recipe yet (custom events only)
+        data.recipe = values.recipe ~= 'none' and values.recipe or nil
     end
 
     local ok, err = persistEvent({ data = data })
@@ -1096,7 +1055,6 @@ local function saveEventData(values)
     return refresh(notice('Saved.'))
 end
 
--- The position form -> a location object. Returns it, or nil and a message.
 local function stationFromValues(values, parts)
     local location = {}
     for _, part in ipairs(parts) do
@@ -1135,8 +1093,6 @@ local function startEntrance(values)
     return { close = true }
 end
 
--- Cornerselling
-
 local function loadCorner()
     local result, err = QB.callback.trigger('qbdrugs:creator:corner:get')
     if not result then
@@ -1147,7 +1103,6 @@ local function loadCorner()
     return true
 end
 
--- Saves the whole settings table through the same callback every event uses.
 local function persistCorner(data)
     local result, err = QB.callback.trigger('qbdrugs:creator:event:save', CORNER_STEP, { data = data })
     if not result then return false, err or 'Failed to save.' end
@@ -1155,7 +1110,6 @@ local function persistCorner(data)
     return true
 end
 
--- Small price prompt. Returns a whole number, or nil if it was cancelled.
 local function askPrice(label, current, title)
     local result = QB.nui.openInputDialog({
         { id = 'price', label = 'Price (cash each)', type = 'number', min = 0, max = 1000000, default = current, required = true },
@@ -1254,8 +1208,6 @@ local function cornerAction(actionId, values)
     return refresh()
 end
 
--- Recipes
-
 local function loadRecipes()
     local result, err = QB.callback.trigger('qbdrugs:creator:recipes:get')
     if not result then
@@ -1266,7 +1218,6 @@ local function loadRecipes()
     return true
 end
 
--- Amount and "used up" prompt. Returns { amount, keep }, or nil if it was cancelled.
 local function askAmount(label, title, current)
     local result = QB.nui.openInputDialog({
         { id = 'amount', label = 'Amount needed', type = 'number', min = 1, max = 1000, default = current and current.amount or 1, required = true },
@@ -1283,7 +1234,6 @@ local function askAmount(label, title, current)
     return { amount = math.floor(amount), keep = result.values.keep == 'keep' or nil }
 end
 
--- Sends the whole new list of one recipe and takes the server's copy of every recipe back.
 local function saveRecipe(recipe, give, message)
     local result, err = QB.callback.trigger('qbdrugs:creator:recipes:set', recipe.id, give)
     if not result then return fail(err or 'Failed to save.') end
@@ -1545,8 +1495,6 @@ local function onAction(actionId, context)
     return refresh()
 end
 
--- The initial navigation is static: the open loop below fills in the real one
--- right before each open, so nothing calls the server at resource start.
 QB.nui.registerApp({
     id = APP_ID,
     title = 'Drug Creator',
@@ -1610,7 +1558,6 @@ local function runPendingTool()
 
             local ok, err = persistEvent({
                 locations = appended(selectedEvent.locations, {
-                    -- an object raycast returns a vec4: keep its w (heading) too
                     coords = { x = c.x, y = c.y, z = c.z, w = c.w or aimed.heading },
                     object = tool.object,
                     gang = tool.gang,
@@ -1661,6 +1608,7 @@ local function open()
     end
 end
 
-RegisterCommand(COMMAND, function()
+RegisterNetEvent('qbdrugs:creator:open', function()
+    if source ~= 65535 then return end
     CreateThread(open)
-end, false)
+end)

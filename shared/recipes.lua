@@ -42,10 +42,6 @@ end
 
 findRecipes()
 
--- Recipes made in the creator live in the 'Recipes:settings' row next to the edited config ones:
---   data.recipes['Cocaine:snow'] = { custom = true, receive = { item, amount } | nil, give = { ... } }
--- They are added to recipeInfo / recipeIds here, so everything that lists or runs a recipe
--- (the event dropdowns, stepRecipe, craft) treats them like the ones from the config.
 local function rebuildIds()
     for index = #recipeIds, 1, -1 do recipeIds[index] = nil end
     for id in pairs(recipeInfo) do recipeIds[#recipeIds + 1] = id end
