@@ -48,16 +48,11 @@ function copyTable(value)
     return copy
 end
 
--- ----------------------------------------------------------------------------
--- Players
--- ----------------------------------------------------------------------------
-
 function isAdmin(src)
     src = tonumber(src)
     return src ~= nil and src > 0 and IsPlayerAceAllowed(src, Config.creatorAce or 'command')
 end
 
--- coords is anything with x, y and z (a saved location or a vector). False when it has none.
 function isNear(src, coords, radius)
     if not coords then return false end
     local x, y, z = tonumber(coords.x), tonumber(coords.y), tonumber(coords.z)
@@ -65,11 +60,21 @@ function isNear(src, coords, radius)
     return QB.distance.player(src, vec3(x, y, z), radius or 5.0)
 end
 
--- One timer per player and key, so a player cannot repeat an action faster than it can be done.
 local cooldowns = {}
+local blocked = {} -- key -> src -> how many times the player was stopped by this cooldown
 
 function onCooldown(src, key)
-    return cooldowns[key] ~= nil and cooldowns[key][src] == true
+    local active = cooldowns[key] ~= nil and cooldowns[key][src] == true
+    if active then
+        blocked[key] = blocked[key] or {}
+        blocked[key][src] = (blocked[key][src] or 0) + 1
+        QB.print.warn(('[qbdrugs] player %s hit the "%s" cooldown %d time(s)'):format(src, key, blocked[key][src]))
+        if blocked[key][src] == 5 then
+            QB.print.error(('[qbdrugs] player %s hit the "%s" cooldown 5 times, consider taking action'):format(src, key))
+            DropPlayer(src, 'You have hit the "' .. key .. '" cooldown 5 times.')
+        end
+    end
+    return active
 end
 
 function startCooldown(src, key, duration)
@@ -81,6 +86,7 @@ end
 AddEventHandler('playerDropped', function()
     local src = source
     for _, timers in pairs(cooldowns) do timers[src] = nil end
+    for _, counts in pairs(blocked) do counts[src] = nil end
 end)
 
 -- ----------------------------------------------------------------------------

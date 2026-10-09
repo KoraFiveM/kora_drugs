@@ -1,6 +1,5 @@
-local craftCooldown = 5000
+local craftCooldown = 2500
 
--- Where the player is crafting: a single saved location, or one entry out of a list.
 local function savedLocation(entry, key)
     local locations = entry and entry.locations
     if type(locations) ~= 'table' then return end
@@ -23,7 +22,6 @@ RegisterNetEvent('qbdrugs:server:craft', function(drug, step, key)
         return
     end
 
-    -- One craft at a time per player, whether the step has a recipe or runs its own handler.
     if onCooldown(src, 'craft') then
         QB.print.warn(QB.lang('Functions.timeout', src, name))
         return
