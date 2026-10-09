@@ -1,4 +1,3 @@
-
 local MAX_SPOTS = 200
 local maxRecipeItems = 20
 local maxRecipeAmount = 1000
@@ -755,9 +754,11 @@ local cleanBaggingData = textCleaner(baggingDefaults)
 local customStep = 'Custom:settings'
 
 local function customDrugsDefaults()
-    return { drugs = {} }
+    return { drugs = {}, removed = {} }
 end
 
+-- drugs   = names made on the Custom drugs page
+-- removed = base events (like 'Cocaine:powder') the admin deleted; they stay hidden and are not re-created on start
 local function cleanCustomDrugs(data)
     if type(data) ~= 'table' then return nil, 'Invalid data.' end
     local clean, seen = customDrugsDefaults(), {}
@@ -765,6 +766,14 @@ local function cleanCustomDrugs(data)
         if type(name) == 'string' and #name <= 24 and name:match('^%a%w*$') and not seen[name:lower()] then
             seen[name:lower()] = true
             clean.drugs[#clean.drugs + 1] = name
+        end
+    end
+
+    local gone = {}
+    for _, step in ipairs(type(data.removed) == 'table' and data.removed or {}) do
+        if type(step) == 'string' and #step <= 49 and step:match('^%w+:[%w_]+$') and not gone[step] then
+            gone[step] = true
+            clean.removed[#clean.removed + 1] = step
         end
     end
     return clean
@@ -783,15 +792,20 @@ local CUSTOM_EVENT = {
     readLocations = readPoints,
 }
 
-local function customDrugNames()
+-- What the Custom drugs page saved: { drugs = {...}, removed = {...} }.
+local function customRegistry()
     local rows = QB.sql.query('SELECT `data` FROM `qbdrugs` WHERE `step` = ? LIMIT 1', { customStep })
     local row = rows and rows[1]
-    local clean = row and cleanCustomDrugs(decode(row.data, {}))
-    return clean and clean.drugs or {}
+    return (row and cleanCustomDrugs(decode(row.data, {}))) or customDrugsDefaults()
+end
+
+local function customDrugNames()
+    return customRegistry().drugs
 end
 
 local function labEvent(seedLocations)
     return {
+        permanent = true, -- entrances are never deleted
         defaults = labDefaults,
         cleanData = cleanLabData,
         cleanLocations = cleanEntrances,
@@ -803,18 +817,21 @@ end
 
 local EVENT_TYPES = {
     [customStep] = {
+        permanent = true,
         defaults = customDrugsDefaults,
         cleanData = cleanCustomDrugs,
         fixedLocations = noLocations,
         readLocations = noLocations,
     },
     ['CornerSelling:settings'] = {
+        permanent = true,
         defaults = cornerDefaults,
         cleanData = cleanCornerData,
         fixedLocations = noLocations,
         readLocations = noLocations,
     },
     [recipesStep] = {
+        permanent = true,
         defaults = recipesDefaults,
         cleanData = cleanRecipeData,
         fixedLocations = noLocations,
@@ -1216,7 +1233,7 @@ local function customPayload()
     for _, entry in ipairs(drugs) do
         table.sort(entry.events, function(a, b) return a.name < b.name end)
     end
-    return { drugs = drugs }
+    return { drugs = drugs, removed = customRegistry().removed }
 end
 
 local function dropEvent(step)
@@ -1295,6 +1312,83 @@ adminCallback('qbdrugs:creator:custom:event:create', function(_, drug, name)
     return payload
 end)
 
+-- Creates (or fills in) the row of an event that has a fixed or known first location. A row that is
+-- already complete is never touched.
+local function seedEvent(step, kind)
+    local initial = kind.fixedLocations or kind.seedLocations
+    if not initial then return end
+
+    local readOk, rows = pcall(QB.sql.query, 'SELECT * FROM `qbdrugs` WHERE `step` = ? LIMIT 1', { step })
+    if not readOk then
+        QB.print.warn(('[qbdrugs] could not read %s: %s'):format(step, tostring(rows)))
+        return
+    end
+
+    local row = rows and rows[1]
+    local sql, params, what
+
+    if not row then
+        what = 'created default row'
+        sql = 'INSERT INTO `qbdrugs` (`step`, `data`, `locations`) VALUES (?, ?, ?)'
+        params = { step, json.encode(kind.defaults()), json.encode(initial()) }
+    elseif kind.fillLocations and not decode(row.locations, {}).coords then
+        what = 'filled the position of'
+        sql = 'UPDATE `qbdrugs` SET `locations` = ? WHERE `step` = ?'
+        params = { json.encode(initial()), step }
+    end
+    if not what then return end
+
+    local writeOk, ok, writeErr = pcall(QB.sql.update, sql, params)
+    if writeOk and ok then
+        QB.print.warn(('[qbdrugs] %s %s'):format(what, step))
+        pcall(function() exports[GetCurrentResourceName()]:ReloadEvents(step) end)
+    else
+        QB.print.warn(('[qbdrugs] could not write %s: %s'):format(step, tostring(writeOk and writeErr or ok)))
+    end
+end
+
+-- Base events (everything in EVENT_TYPES except entrances and settings) can be deleted too: the row is
+-- removed and the step is remembered, so it stays hidden and isn't re-created on start.
+local function removable(step)
+    local kind = type(step) == 'string' and EVENT_TYPES[step]
+    return kind and not kind.permanent
+end
+
+adminCallback('qbdrugs:creator:event:delete', function(_, step)
+    if not removable(step) then return fail('This event cannot be deleted.') end
+
+    local data = customRegistry()
+    for _, known in ipairs(data.removed) do
+        if known == step then return customPayload() end
+    end
+
+    local ok, err = dropEvent(step)
+    if not ok then return fail(err or 'Failed to delete the event.') end
+
+    data.removed[#data.removed + 1] = step
+    local saved, saveErr = saveEvent(customStep, { data = data })
+    if not saved then return fail(saveErr) end
+    return customPayload()
+end)
+
+adminCallback('qbdrugs:creator:event:restore', function(_, step)
+    if not removable(step) then return fail('This event cannot be restored.') end
+
+    local data = customRegistry()
+    local kept = {}
+    for _, known in ipairs(data.removed) do
+        if known ~= step then kept[#kept + 1] = known end
+    end
+    data.removed = kept
+
+    local saved, saveErr = saveEvent(customStep, { data = data })
+    if not saved then return fail(saveErr) end
+
+    seedEvent(step, EVENT_TYPES[step]) -- events with a fixed position get their row back right away
+    pcall(function() exports[GetCurrentResourceName()]:ReloadEvents(step) end)
+    return customPayload()
+end)
+
 adminCallback('qbdrugs:creator:custom:event:delete', function(_, step)
     if kindFor(step) ~= CUSTOM_EVENT then return fail('Only custom events can be deleted.') end
     local ok, err = dropEvent(step)
@@ -1306,37 +1400,13 @@ CreateThread(function()
     Wait(1000)
     while GetResourceState('qbsql') ~= 'started' do Wait(500) end
 
+    -- events the admin deleted stay deleted
+    local skip = {}
+    local okRegistry, registry = pcall(customRegistry)
+    for _, step in ipairs(okRegistry and registry.removed or {}) do skip[step] = true end
+
     for step, kind in pairs(EVENT_TYPES) do
-        local initial = kind.fixedLocations or kind.seedLocations
-        if initial then
-            local readOk, rows = pcall(QB.sql.query, 'SELECT * FROM `qbdrugs` WHERE `step` = ? LIMIT 1', { step })
-            if not readOk then
-                QB.print.warn(('[qbdrugs] could not read %s: %s'):format(step, tostring(rows)))
-            else
-                local row = rows and rows[1]
-                local sql, params, what
-
-                if not row then
-                    what = 'created default row'
-                    sql = 'INSERT INTO `qbdrugs` (`step`, `data`, `locations`) VALUES (?, ?, ?)'
-                    params = { step, json.encode(kind.defaults()), json.encode(initial()) }
-                elseif kind.fillLocations and not decode(row.locations, {}).coords then
-                    what = 'filled the position of'
-                    sql = 'UPDATE `qbdrugs` SET `locations` = ? WHERE `step` = ?'
-                    params = { json.encode(initial()), step }
-                end
-
-                if what then
-                    local writeOk, ok, writeErr = pcall(QB.sql.update, sql, params)
-                    if writeOk and ok then
-                        QB.print.warn(('[qbdrugs] %s %s'):format(what, step))
-                        pcall(function() exports[GetCurrentResourceName()]:ReloadEvents(step) end)
-                    else
-                        QB.print.warn(('[qbdrugs] could not write %s: %s'):format(step, tostring(writeOk and writeErr or ok)))
-                    end
-                end
-            end
-        end
+        if not skip[step] then seedEvent(step, kind) end
     end
 end)
 

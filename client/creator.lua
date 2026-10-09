@@ -8,7 +8,14 @@ local pendingTool = nil
 local CORNER_STEP = 'CornerSelling:settings'
 local corner = { data = nil, items = {}, query = nil, results = {}, total = 0 }
 local recipes = { list = {}, items = {}, selected = nil, query = nil, results = {}, total = 0 }
-local customs = { drugs = {}, selected = nil }
+local customs = { drugs = {}, removed = {} }
+
+-- removed = base events the admin deleted, as a set: removed['Cocaine:powder'] = true
+local function applyCustoms(result)
+    customs.drugs = result.drugs or {}
+    customs.removed = {}
+    for _, step in ipairs(result.removed or {}) do customs.removed[step] = true end
+end
 local COCAINE_LAB_EXIT = { x = 1088.81, y = -3187.57, z = -38.99 }
 local METH_LAB_EXIT = { x = 996.91, y = -3200.83, z = -36.39 }
 local WEED_LAB_EXIT = { x = 1066.4, y = -3183.36, z = -39.16 }
@@ -38,31 +45,33 @@ local EVENTS = {
       points = { noun = 'fill heroin vials', progress = 'Filling Heroin Vials', label = 'Fill Heroin Vials', icon = 'poppy' } },
     { step = 'Heroin:syringe',  kind = 'points',  label = 'Heroin Syringe',   icon = 'Syringe',
       points = { noun = 'make heroin syringes', progress = 'Making Heroin Syringe', label = 'Make Heroin Syringe', icon = 'poppy' } },
-    { step = 'Weed:drying',     kind = 'points',  label = 'Weed Drying',      icon = 'Wind',
+    { step = 'Weed:drying',     kind = 'points',  label = 'Weed Drying',      icon = 'Wind',      noRecipe = true,
       points = { noun = 'dry weed', progress = 'Drying Weed', label = 'Dry Weed', icon = 'weed' } },
-    { step = 'Weed:breakNugs',  kind = 'points',  label = 'Weed Break Down',  icon = 'Scissors',
+    { step = 'Weed:breakNugs',  kind = 'points',  label = 'Weed Break Down',  icon = 'Scissors',  noRecipe = true,
       points = { noun = 'break down weed', progress = 'Breaking Down Weed', label = 'Break Down Weed', icon = 'weed' } },
-    { step = 'Weed:bagWeed',    kind = 'points',  label = 'Weed Bagging',     icon = 'Package',
+    { step = 'Weed:bagWeed',    kind = 'points',  label = 'Weed Bagging',     icon = 'Package',   noRecipe = true,
       points = { noun = 'bag weed', progress = 'Bagging Weed', label = 'Bag Weed', icon = 'weed' } },
     { step = 'Cocaine:cutting', kind = 'text',    label = 'Cocaine Cutting',  icon = 'Scissors',
       text = { noun = 'cutting table', fields = targetFields({ 'Target', 'targetLabel', 'targetIcon', 'cut cocaine', 'knife' }) } },
     { step = 'Cocaine:bagging', kind = 'text',    label = 'Cocaine Bagging',  icon = 'Package',
       text = { noun = 'bagging table', fields = targetFields({ 'Target', 'targetLabel', 'targetIcon', 'bag cocaine', 'box' }) } },
-    { step = 'Meth:pour',       kind = 'station', label = 'Meth Pour & Tray', icon = 'FlaskConical',
-      station = { 'coords', 'offset', 'rotation' },
+    { step = 'Meth:pour',       kind = 'text',    label = 'Meth Pour & Tray', icon = 'FlaskConical',
       text = { noun = 'pour station (pour and tray targets)', fields = targetFields(
           { 'Pour', 'targetLabel', 'targetIcon', 'Pour Chemicals', 'fa-solid fa-flask' },
           { 'Tray', 'trayLabel', 'trayIcon', 'Grab Tray', 'fa-solid fa-hand-paper' }) } },
-    { step = 'Meth:heat',       kind = 'station', label = 'Meth Heat',        icon = 'Flame',
-      station = { 'coords', 'explosion' },
+    { step = 'Meth:heat',       kind = 'text',    label = 'Meth Heat',        icon = 'Flame',     explosion = true,
       text = { noun = 'heat station', fields = targetFields({ 'Target', 'targetLabel', 'targetIcon', 'Heat Chemicals', 'fa-solid fa-fire' }) } },
-    { step = 'Meth:smash',      kind = 'station', label = 'Meth Smash',       icon = 'Hammer',
-      station = { 'coords', 'offset', 'rotation', 'size', 'bucket' },
+    { step = 'Meth:smash',      kind = 'text',    label = 'Meth Smash',       icon = 'Hammer',
       text = { noun = 'smash station', fields = targetFields({ 'Target', 'targetLabel', 'targetIcon', 'Smash Meth', 'fa-solid fa-hammer' }) } },
-    { step = 'Meth:bag',        kind = 'station', label = 'Meth Bag',         icon = 'ShoppingBag',
-      station = { 'coords', 'offset', 'rotation', 'size' },
+    { step = 'Meth:bag',        kind = 'text',    label = 'Meth Bag',         icon = 'ShoppingBag',
       text = { noun = 'bagging bucket', fields = targetFields({ 'Target', 'targetLabel', 'targetIcon', 'Bag Meth', 'fa-solid fa-bag-shopping' }) } },
 }
+
+table.sort(EVENTS, function(a, b)
+    local la, lb = a.label:lower(), b.label:lower()
+    if la ~= lb then return la < lb end
+    return a.step < b.step
+end)
 
 local function customEvent(step)
     for _, drug in ipairs(customs.drugs) do
@@ -241,23 +250,74 @@ local function spotsView()
 end
 
 local function eventsView()
-    local items = {}
+    local entrances, events, deleted = {}, {}, {}
     for _, event in ipairs(EVENTS) do
-        items[#items + 1] = {
+        local item = {
             id = event.step,
             label = event.label,
             icon = event.icon,
             description = event.step,
             action = 'event:select:' .. event.step,
         }
+        if event.kind == 'lab' then
+            entrances[#entrances + 1] = item
+        elseif customs.removed[event.step] then
+            item.description = 'Deleted. Click to restore it.'
+            item.action = 'event:restore:' .. event.step
+            deleted[#deleted + 1] = item
+        else
+            events[#events + 1] = item
+        end
+    end
+
+    for _, drug in ipairs(customs.drugs) do
+        for _, event in ipairs(drug.events) do
+            events[#events + 1] = {
+                id = event.step,
+                label = ('%s · %s'):format(drug.name, event.name),
+                icon = 'Package',
+                description = event.step,
+                action = 'event:select:' .. event.step,
+            }
+        end
+    end
+
+    table.sort(events, function(a, b)
+        local la, lb = a.label:lower(), b.label:lower()
+        if la ~= lb then return la < lb end
+        return a.id < b.id
+    end)
+
+    local drugOptions = {}
+    for _, drug in ipairs(customs.drugs) do
+        drugOptions[#drugOptions + 1] = { value = drug.name, label = drug.name }
+    end
+
+    local blocks = {
+        {
+            type = 'form', id = 'event-create', title = 'New event',
+            fields = {
+                { id = 'drug', label = 'Drug', type = 'select', options = drugOptions,
+                    default = drugOptions[1] and drugOptions[1].value,
+                    description = 'Make drugs on the Custom drugs tab.' },
+                { id = 'name', label = 'Name', type = 'text', required = true,
+                    description = 'Letters, numbers and _, starting with a letter. e.g. cook' },
+            },
+            action = { id = 'custom:event:create', label = 'Create event' },
+        },
+        { type = 'list', id = 'event-entrances', title = 'Entrances', items = entrances, empty = 'No entrances.' },
+        { type = 'list', id = 'event-list', title = 'Events', items = events, empty = 'No events. Restore one below, or make drugs on the Custom drugs tab.' },
+    }
+    if #deleted > 0 then
+        blocks[#blocks + 1] = { type = 'list', id = 'event-deleted', title = 'Deleted events', items = deleted, empty = '' }
     end
 
     return {
         id = 'events', label = 'Events', icon = 'Door',
         content = {
             title = 'Events',
-            description = 'Pick an event to edit its settings and locations.',
-            blocks = { { type = 'list', id = 'event-list', items = items, empty = 'No events.' } },
+            description = 'Pick an event to edit its settings and locations. Entrances stay; every other event can be deleted and restored.',
+            blocks = blocks,
         },
     }
 end
@@ -379,12 +439,22 @@ local function pointsView(info)
     }
 end
 
+-- Events that only have target text (position and animation are not edited here).
+-- info.explosion adds the "explosion when the dials fail" switch (Meth Heat).
 local function textView(info)
     local data = selectedEvent.data or {}
 
     local fields = {}
     for _, field in ipairs(info.text.fields) do
         fields[#fields + 1] = { id = field.id, label = field.label, type = 'text', default = data[field.id] or field.default }
+    end
+    if info.explosion then
+        local location = selectedEvent.locations or {}
+        fields[#fields + 1] = {
+            id = 'explosion', label = 'Explosion when the dials are failed', type = 'select',
+            default = location.explosion and 'enabled' or 'disabled',
+            options = { { value = 'enabled', label = 'Enabled' }, { value = 'disabled', label = 'Disabled' } },
+        }
     end
 
     return {
@@ -397,73 +467,6 @@ local function textView(info)
                     type = 'form', id = 'event-data', title = 'Target text',
                     fields = fields,
                     action = { id = 'event:data:save', label = 'Save' },
-                },
-            },
-        },
-    }
-end
-
-local STATION_PARTS = {
-    coords = { label = 'Position', min = -10000, max = 10000 },
-    offset = { label = 'Scene offset', min = -500, max = 500 },
-    rotation = { label = 'Scene rotation', min = -720, max = 720 },
-    size = { label = 'Target size', min = 0.01, max = 100 },
-    bucket = { label = 'Bucket', min = -10000, max = 10000 },
-}
-
-local function stationView(info)
-    local data = selectedEvent.data or {}
-    local location = selectedEvent.locations or {}
-
-    local textFields = {}
-    for _, field in ipairs(info.text.fields) do
-        textFields[#textFields + 1] = { id = field.id, label = field.label, type = 'text', default = data[field.id] or field.default }
-    end
-
-    local fields = {}
-    for _, part in ipairs(info.station) do
-        if part == 'explosion' then
-            fields[#fields + 1] = {
-                id = 'explosion', label = 'Explosion when the dials are failed', type = 'select',
-                default = location.explosion and 'enabled' or 'disabled',
-                options = { { value = 'enabled', label = 'Enabled' }, { value = 'disabled', label = 'Disabled' } },
-            }
-        else
-            local rule, value = STATION_PARTS[part], location[part] or {}
-            for _, axis in ipairs({ 'x', 'y', 'z' }) do
-                fields[#fields + 1] = {
-                    id = part .. axis:upper(), label = ('%s %s'):format(rule.label, axis:upper()), type = 'number',
-                    step = 0.01, min = rule.min, max = rule.max, default = value[axis] or 0,
-                }
-            end
-            if part == 'bucket' then
-                fields[#fields + 1] = {
-                    id = 'bucketW', label = 'Bucket heading', type = 'number',
-                    step = 0.01, min = -720, max = 720, default = value.w or 0,
-                }
-            end
-        end
-    end
-
-    return {
-        id = 'event', label = info.label, icon = info.icon,
-        content = {
-            title = info.label,
-            description = ('Target text and position for the %s. Scene offset and rotation line the animation up with the props.'):format(info.text.noun),
-            blocks = {
-                {
-                    type = 'form', id = 'event-data', title = 'Target text',
-                    fields = textFields,
-                    action = { id = 'event:data:save', label = 'Save' },
-                },
-                {
-                    type = 'actions', title = 'Position',
-                    actions = { { id = 'event:station:aim', label = 'Set position where I aim', icon = 'Crosshair', variant = 'primary' } },
-                },
-                {
-                    type = 'form', id = 'station-position', title = 'Position and animation',
-                    fields = fields,
-                    action = { id = 'event:station:save', label = 'Save position' },
                 },
             },
         },
@@ -494,6 +497,7 @@ local function recipeField(step, data)
 end
 
 local function withRecipeField(view, info)
+    if info.noRecipe then return view end
     local field = recipeField(info.step, selectedEvent.data or {})
     if not field then return view end
     for _, block in ipairs(view.content.blocks) do
@@ -504,25 +508,21 @@ end
 
 local function eventView()
     local info = eventInfo(selectedEvent.step)
-    if info.kind == 'points' then
-        local view = withRecipeField(pointsView(info), info)
-        if info.custom then
-            table.insert(view.content.blocks, {
-                type = 'actions',
-                actions = { { id = 'custom:event:delete', label = 'Delete event', variant = 'destructive' } },
-            })
-        end
-        return view
-    end
-    if info.kind == 'text' then return withRecipeField(textView(info), info) end
-    if info.kind == 'station' then return withRecipeField(stationView(info), info) end
-    return labView(info)
-end
 
-local function selectedCustom()
-    for _, drug in ipairs(customs.drugs) do
-        if drug.name == customs.selected then return drug end
+    local view
+    if info.kind == 'points' then
+        view = withRecipeField(pointsView(info), info)
+    elseif info.kind == 'text' then
+        view = withRecipeField(textView(info), info)
+    else
+        return labView(info) -- entrances stay
     end
+
+    table.insert(view.content.blocks, {
+        type = 'actions',
+        actions = { { id = info.custom and 'custom:event:delete' or 'event:delete', label = 'Delete event', variant = 'destructive' } },
+    })
+    return view
 end
 
 local function customsView()
@@ -533,7 +533,7 @@ local function customsView()
             label = drug.name,
             icon = 'FlaskConical',
             description = ('%d events'):format(#drug.events),
-            action = 'custom:select:' .. drug.name,
+            actions = { { id = 'custom:delete:' .. drug.name, label = 'Delete', icon = 'Trash2', variant = 'destructive' } },
         }
     end
 
@@ -541,7 +541,7 @@ local function customsView()
         id = 'customs', label = 'Custom drugs', icon = 'Package',
         content = {
             title = 'Custom drugs',
-            description = 'Make a new drug, then add events to it. Every event is a copy of Cocaine Powder: same settings, same locations.',
+            description = 'Make a new drug, then pick it in the New event form on the Events page. Every event is a copy of Cocaine Powder: same settings, same locations.',
             blocks = {
                 {
                     type = 'form', id = 'custom-create', title = 'New drug',
@@ -552,41 +552,6 @@ local function customsView()
                     action = { id = 'custom:create', label = 'Create drug' },
                 },
                 { type = 'list', id = 'custom-list', layout = 'cards', columns = 3, items = items, empty = 'No custom drugs yet.' },
-            },
-        },
-    }
-end
-
-local function customView()
-    local drug = selectedCustom()
-
-    local items = {}
-    for _, event in ipairs(drug.events) do
-        items[#items + 1] = {
-            id = event.step,
-            label = event.name,
-            icon = 'Package',
-            description = event.step,
-            action = 'event:select:' .. event.step,
-        }
-    end
-
-    return {
-        id = 'custom', label = drug.name, icon = 'FlaskConical',
-        content = {
-            title = drug.name,
-            description = 'Add events to this drug. Make its recipes on the Recipes page, then pick one on each event.',
-            blocks = {
-                {
-                    type = 'form', id = 'custom-event-create', title = 'New event',
-                    fields = {
-                        { id = 'name', label = 'Name', type = 'text', required = true,
-                            description = 'Letters, numbers and _, starting with a letter. e.g. cook' },
-                    },
-                    action = { id = 'custom:event:create', label = 'Add event' },
-                },
-                { type = 'list', id = 'custom-events', layout = 'cards', columns = 3, items = items, empty = 'No events yet.' },
-                { type = 'actions', actions = { { id = 'custom:delete', label = 'Delete drug', variant = 'destructive' } } },
             },
         },
     }
@@ -917,9 +882,6 @@ local function buildNavigation()
         navigation[#navigation + 1] = eventView()
     end
     navigation[#navigation + 1] = customsView()
-    if selectedCustom() then
-        navigation[#navigation + 1] = customView()
-    end
     navigation[#navigation + 1] = cornerView()
     navigation[#navigation + 1] = recipesView()
     if recipes.selected then
@@ -1037,7 +999,7 @@ local function saveEventData(values)
                 flag = tonumber(values.animFlag),
             },
         }
-    elseif kind == 'text' or kind == 'station' then
+    elseif kind == 'text' then
         data = {}
         for _, field in ipairs(eventInfo(selectedEvent.step).text.fields) do
             data[field.id] = values[field.id] or ''
@@ -1050,38 +1012,17 @@ local function saveEventData(values)
         data.recipe = values.recipe ~= 'none' and values.recipe or nil
     end
 
-    local ok, err = persistEvent({ data = data })
-    if not ok then return fail(err) end
-    return refresh(notice('Saved.'))
-end
-
-local function stationFromValues(values, parts)
-    local location = {}
-    for _, part in ipairs(parts) do
-        if part == 'explosion' then
-            location.explosion = values.explosion == 'enabled'
-        else
-            local x, y, z = tonumber(values[part .. 'X']), tonumber(values[part .. 'Y']), tonumber(values[part .. 'Z'])
-            if not (x and y and z) then
-                return nil, ('Fill in every number for the %s.'):format(STATION_PARTS[part].label:lower())
-            end
-            location[part] = { x = x, y = y, z = z }
-            if part == 'bucket' then
-                local w = tonumber(values.bucketW)
-                if not w then return nil, 'Fill in the bucket heading.' end
-                location.bucket.w = w
-            end
-        end
+    local patch = { data = data }
+    if eventInfo(selectedEvent.step).explosion then
+        -- the switch lives with the station's saved position, so send that along with the new value
+        local location = {}
+        for key, value in pairs(selectedEvent.locations or {}) do location[key] = value end
+        location.explosion = values.explosion == 'enabled'
+        patch.locations = location
     end
-    return location
-end
 
-local function saveStation(values)
-    local location, err = stationFromValues(values, eventInfo(selectedEvent.step).station)
-    if not location then return fail(err) end
-
-    local ok, saveErr = persistEvent({ locations = location })
-    if not ok then return fail(saveErr) end
+    local ok, err = persistEvent(patch)
+    if not ok then return fail(err) end
     return refresh(notice('Saved.'))
 end
 
@@ -1364,7 +1305,7 @@ local function loadCustoms()
         QB.notify.send({ title = 'Drug Creator', message = err or 'Could not load the custom drugs.', type = 'error' })
         return false
     end
-    customs.drugs = result.drugs or {}
+    applyCustoms(result)
     return true
 end
 
@@ -1374,31 +1315,30 @@ local function customAction(actionId, values)
         local result, err = QB.callback.trigger('qbdrugs:creator:custom:drug:create', name)
         if not result then return fail(err or 'Failed to create the drug.') end
 
-        customs.drugs, customs.selected, currentView = result.drugs or {}, result.name, 'custom'
-        return refresh(notice('Drug created. Add its events below.'))
+        applyCustoms(result)
+        return refresh(notice('Drug created. Pick it in the New event form on the Events page.'))
     end
-
-    local pick = actionId:match('^custom:select:(.+)$')
-    if pick then
-        customs.selected = pick
-        if not selectedCustom() then return fail('Unknown drug.') end
-        currentView = 'custom'
-        return refresh()
-    end
-
-    local drug = selectedCustom()
-    if not drug then return refresh() end
 
     if actionId == 'custom:event:create' then
+        local drugName = type(values.drug) == 'string' and values.drug or ''
+        if drugName == '' then return fail('Create a drug on the Custom drugs tab first.') end
+
         local name = type(values.name) == 'string' and values.name or ''
-        local result, err = QB.callback.trigger('qbdrugs:creator:custom:event:create', drug.name, name)
+        local result, err = QB.callback.trigger('qbdrugs:creator:custom:event:create', drugName, name)
         if not result then return fail(err or 'Failed to add the event.') end
 
-        customs.drugs = result.drugs or {}
+        applyCustoms(result)
         return selectEvent(result.step)
     end
 
-    if actionId == 'custom:delete' then
+    local deleteName = actionId:match('^custom:delete:(.+)$')
+    if deleteName then
+        local drug
+        for _, entry in ipairs(customs.drugs) do
+            if entry.name == deleteName then drug = entry end
+        end
+        if not drug then return fail('Unknown drug.') end
+
         local confirmation = QB.nui.openAlert({
             title = 'Delete drug?',
             message = ('This removes %s and all %d of its events. Its recipes stay on the Recipes page.'):format(drug.name, #drug.events),
@@ -1410,7 +1350,8 @@ local function customAction(actionId, values)
         if not result then return fail(err or 'Failed to delete the drug.') end
 
         if selectedEvent and selectedEvent.step:match('^' .. drug.name .. ':') then selectedEvent = nil end
-        customs.drugs, customs.selected, currentView = result.drugs or {}, nil, 'customs'
+        applyCustoms(result)
+        currentView = 'customs'
         return refresh(notice('Drug deleted.'))
     end
 
@@ -1427,12 +1368,42 @@ local function customAction(actionId, values)
         local result, err = QB.callback.trigger('qbdrugs:creator:custom:event:delete', selectedEvent.step)
         if not result then return fail(err or 'Failed to delete the event.') end
 
-        selectedEvent, currentView = nil, 'custom'
-        customs.drugs = result.drugs or {}
+        selectedEvent, currentView = nil, 'events'
+        applyCustoms(result)
         return refresh(notice('Event deleted.'))
     end
 
     return refresh()
+end
+
+local function deleteBaseEvent()
+    local info = selectedEvent and eventInfo(selectedEvent.step)
+    if not (info and info.kind ~= 'lab' and not info.custom) then return refresh() end
+
+    local confirmation = QB.nui.openAlert({
+        title = 'Delete event?',
+        message = ('This removes %s and all of its locations. You can restore it from the Events page.'):format(info.label),
+        confirmLabel = 'Delete',
+    })
+    if not confirmation or not confirmation.confirmed then return refresh() end
+
+    local result, err = QB.callback.trigger('qbdrugs:creator:event:delete', selectedEvent.step)
+    if not result then return fail(err or 'Failed to delete the event.') end
+
+    applyCustoms(result)
+    selectedEvent, currentView = nil, 'events'
+    return refresh(notice('Event deleted.'))
+end
+
+local function restoreBaseEvent(step)
+    if not eventInfo(step) then return fail('Unknown event.') end
+
+    local result, err = QB.callback.trigger('qbdrugs:creator:event:restore', step)
+    if not result then return fail(err or 'Failed to restore the event.') end
+
+    applyCustoms(result)
+    currentView = 'events'
+    return refresh(notice('Event restored.'))
 end
 
 local function onAction(actionId, context)
@@ -1443,6 +1414,9 @@ local function onAction(actionId, context)
     if actionId:match('^recipe:') then return recipeAction(actionId, values) end
     if actionId:match('^custom:') then return customAction(actionId, values) end
 
+    local restoreStep = actionId:match('^event:restore:(.+)$')
+    if restoreStep then return restoreBaseEvent(restoreStep) end
+
     local eventStep = actionId:match('^event:select:(.+)$')
     if eventStep then return selectEvent(eventStep) end
 
@@ -1450,11 +1424,7 @@ local function onAction(actionId, context)
         if not selectedEvent then return refresh() end
         if actionId == 'event:data:save' then return saveEventData(values) end
         if actionId == 'event:add' then return startEntrance(values) end
-        if actionId == 'event:station:save' then return saveStation(values) end
-        if actionId == 'event:station:aim' then
-            pendingTool, currentView = { kind = 'station' }, 'event'
-            return { close = true }
-        end
+        if actionId == 'event:delete' then return deleteBaseEvent() end
         if actionId == 'event:place' then
             local object = type(values.object) == 'string' and values.object:match('^%s*(.-)%s*$') or ''
             if object ~= '' and not modelExists(object) then return fail('Unknown object model.') end
@@ -1523,22 +1493,6 @@ local function runPendingTool()
                 gang = tool.gang,
             }),
         })
-        if not ok then
-            QB.notify.send({ title = 'Drug Creator', message = err, type = 'error' })
-        end
-        return
-    end
-
-    if tool.kind == 'station' then
-        local aimed = QB.raycast.getCoords({})
-        local c = aimed and aimed.coords
-        if not c then return end
-
-        local location = {}
-        for key, value in pairs(selectedEvent.locations or {}) do location[key] = value end
-        location.coords = { x = c.x, y = c.y, z = c.z }
-
-        local ok, err = persistEvent({ locations = location })
         if not ok then
             QB.notify.send({ title = 'Drug Creator', message = err, type = 'error' })
         end
