@@ -63,3 +63,18 @@ Drugs Script For QB-Core
 
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <https://www.gnu.org/licenses/>
+
+
+## Native dealer compatibility
+
+The native dealer adapter provides `qb-drugs:GetDealers`, `qb-drugs:server:RequestConfig`, dealer shops, delivery issue/settlement events and the `newdealer`, `deletedealer`, `dealers`, `dealergoto` admin commands. It reads existing stock `dealers` rows directly. Invalid coordinates, schedules or duplicate names stop initialization rather than silently losing dealers. Config defaults in `shared/legacy_dealers.lua` come from pinned upstream `qb-drugs` commit `51052d139bc482d9d0e94d4f47680b241e866bba` (GPL-3.0). Native labs and corner selling remain independent.
+
+`qbinventory`, `qbtarget` and `qbweathersync` are required. Shops preserve native stock and payment authority, enforce schedule/range/bucket/reputation on the server, and close when their access policy is unavailable. The old client stock-update event refreshes real stock; it cannot debit twice or create a refund. GetDealers returns detached roster/product data. Shop item visibility may include reputation-locked items; purchasing them is denied by server policy.
+
+Deliveries persist one active session per character before granting an item. Valid legacy route/item/quantity choices are accepted only from the configured lists. The server selects canonical prices and owns a five-minute deadline from issue; reconnecting never resets it. Partial/late payouts and the police multiplier follow upstream settings. Optional marked bills retain `info.worth`. Item grants, settlement removals, cash and dealer reputation use inventory-owned durable exchange receipts. Retrying a completed delivery returns its result without granting again. Receipts and delivery rows must not be deleted to retry an operation. Cash reward transaction tax must be disabled, as enforced by the exchange API; physical cash mode uses the inventory's configured currency.
+
+Native target interactions support requesting a delivery, cancellable progress, logout cleanup and route recovery after reconnect. Optional selected-phone mail uses the real `qb-phone:sendNewMailToOffline` bridge with the authoritative citizen ID and a one-use action that reloads the server route. The legacy mail export has no acknowledgement return; unavailable mail is logged and cannot change a reward. Unlike the unsafe stock handlers, clients cannot supply prices, reputation changes, elapsed time or arbitrary grants.
+
+Both SQL tables are created additively from `sql/legacy_dealers.sql`; existing dealer rows are never replaced. Rollback requires stopping the native dealer provider and preserving the delivery/receipt tables; stock code cannot safely resume these outstanding native sessions. Do not run both providers together.
+
+Run `bash test/run.sh` for controlled Lua tests of authority, replay, error recovery, admin persistence and client cleanup. These tests do not establish connected-client gameplay parity, mail delivery, UI presentation or actual database crash recovery. The isolated FXServer/MariaDB suite records those independently.

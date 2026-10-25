@@ -175,3 +175,11 @@ function RegisterLabTeleport(name, drug, step)
         inside[source] = nil
     end)
 end
+
+-- Create storage before the other server scripts read it; keep the example rows opt-in.
+local sqlReady, sqlError = QB.sql.ready()
+assert(sqlReady, sqlError)
+local installSql = assert(LoadResourceFile(GetCurrentResourceName(), 'sql/qbdrugs.sql'), 'qbdrugs: missing sql/qbdrugs.sql')
+local schemaSql = assert(installSql:match('^(CREATE TABLE.-;)'), 'qbdrugs: missing table definition')
+local created, createError = QB.sql.query(schemaSql)
+assert(created ~= nil, createError or 'qbdrugs: could not create storage')
