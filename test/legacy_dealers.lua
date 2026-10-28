@@ -19,7 +19,7 @@ GetResourceState = function() return 'started' end
 GetPlayerRoutingBucket = function() return bucket end
 isNear = function() return near end
 isAdmin = function() return admin end
-GlobalState = { qbweathersync = { hour = 12 } }
+GlobalState = { kora_weathersync = { hour = 12 } }
 GetPlayerPed = function(src) return src end
 GetEntityCoords = function() return { x=1, y=2, z=3 } end
 SetEntityCoords = function() end
@@ -95,7 +95,7 @@ local detached=registered.GetDealers(); detached.Test.coords.x=99
 check(registered.GetDealers().Test.coords.x==1,'roster detached')
 near=false; check(begin(1,'Test')==nil,'distant issue denied'); near=true
 bucket=1; check(begin(1,'Test')==nil,'routing bucket denied'); bucket=0
-GlobalState.qbweathersync.hour=nil; check(begin(1,'Test')==nil,'missing clock fails closed'); GlobalState.qbweathersync.hour=12
+GlobalState.kora_weathersync.hour=nil; check(begin(1,'Test')==nil,'missing clock fails closed'); GlobalState.kora_weathersync.hour=12
 check(hooks.buyItem({shopId='qbdrugs-dealer-1',itemName='weed_skunk'},1)==false,'shop reputation enforced')
 check(hooks.buyItem({shopId='qbdrugs-dealer-1',itemName='weed_whitewidow'},1)==true,'eligible shop item')
 check(begin(1,{dealer='Test',item=1,amount=99,coords=LegacyDealerConfig.DeliveryLocations[1].coords})==nil,'legacy oversized quantity denied')

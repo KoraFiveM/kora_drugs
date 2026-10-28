@@ -27,7 +27,7 @@ local function locked(src, fn)
 end
 local function shopId(dealer) return 'qbdrugs-dealer-' .. dealer.id end
 local function openHours(dealer)
-    local state = GlobalState.qbweathersync
+    local state = GlobalState.kora_weathersync
     local hour = state and tonumber(state.hour)
     if not hour then return false end
     local first, last = dealer.time.min, dealer.time.max
