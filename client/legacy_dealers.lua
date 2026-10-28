@@ -1,7 +1,7 @@
 local core = exports['qb-core']:GetCoreObject()
 local dealerZones, deliveryZone, active, busy = {}, nil, nil, false
 local function removeDelivery()
-    if deliveryZone then exports.qbtarget:removeZone(deliveryZone); deliveryZone = nil end
+    if deliveryZone then exports.kora_target:removeZone(deliveryZone); deliveryZone = nil end
 end
 local function message(text, kind)
     QB.notify.send({ title = 'Dealer', message = text, type = kind or 'inform' })
@@ -28,7 +28,7 @@ local function route(data)
     removeDelivery()
     active = data
     local coords = data.location.coords
-    deliveryZone = exports.qbtarget:addBoxZone({ coords = vector3(coords.x, coords.y, coords.z), size = vector3(2, 2, 2),
+    deliveryZone = exports.kora_target:addBoxZone({ coords = vector3(coords.x, coords.y, coords.z), size = vector3(2, 2, 2),
         options = { { label = 'Deliver package', icon = 'fa-solid fa-box', onSelect = deliver } } })
     SetNewWaypoint(coords.x, coords.y)
     message(('Deliver %d %s to %s. Follow the marked delivery location.'):format(data.amount, data.itemData.item, data.location.label))
@@ -41,14 +41,14 @@ local function request(name)
     if ok and data then route(data) else message(reason or 'Delivery unavailable', 'error') end
 end
 local function clearDealers()
-    for _, zone in ipairs(dealerZones) do exports.qbtarget:removeZone(zone) end
+    for _, zone in ipairs(dealerZones) do exports.kora_target:removeZone(zone) end
     dealerZones = {}
 end
 local function refresh(dealers)
     clearDealers()
     for name, dealer in pairs(type(dealers) == 'table' and dealers or {}) do
         local coords = dealer.coords
-        dealerZones[#dealerZones + 1] = exports.qbtarget:addBoxZone({
+        dealerZones[#dealerZones + 1] = exports.kora_target:addBoxZone({
             coords = vector3(coords.x, coords.y, coords.z), size = vector3(2, 2, 2),
             options = {
                 { label = name .. ': shop', icon = 'fa-solid fa-shopping-basket', onSelect = function() TriggerServerEvent('qb-drugs:server:dealerShop', name) end },

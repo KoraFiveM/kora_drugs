@@ -59,7 +59,7 @@ local function getSellableItem(src)
     local item
     for name in pairs(cfg.pricing) do
         if exports['qb-inventory']:HasItem(src, name) then
-            item = exports.qbcore:getItemByName(src, name)
+            item = exports.kora_core:getItemByName(src, name)
             break
         end
     end
@@ -81,7 +81,7 @@ local function getSellableItem(src)
         singlePrice = singlePrice,
         amount = amount,
         total = singlePrice * amount,
-        img = 'nui://qbinventory/images/' .. (item.image or ''),
+        img = 'nui://kora_inventory/images/' .. (item.image or ''),
     }
     inProgress[src] = sellData
     return sellData
@@ -105,7 +105,7 @@ RegisterNetEvent('qbdrugs:sellToBuyer', function(netId)
     inProgress[src] = nil
     if exports['qb-inventory']:RemoveItem(src, sellData.item, sellData.amount) then
         local total = sellData.total
-        exports.qbcore:addMoney(src, 'cash', total)
+        exports.kora_core:addMoney(src, 'cash', total)
         hasSale[src] = hasSale[src] or {}
         hasSale[src][buyer] = true
     end

@@ -88,7 +88,7 @@ local function stockAccess(payload, src)
 end
 local function registerShopPolicy()
     for _, kind in ipairs({ 'openInventory', 'buyItem' }) do
-        exports.qbinventory:RegisterHook(kind, function(payload, src)
+        exports.kora_inventory:RegisterHook(kind, function(payload, src)
             local ok, result = pcall(stockAccess, payload, src)
             return ok and result == true
         end)
@@ -108,10 +108,10 @@ end
 local function exchange(src, row, suffix, terms)
     if not player(src, row.citizenid) then return nil, 'player_changed' end
     terms.citizenid = row.citizenid
-    return exports.qbinventory:ExecutePlayerExchange(src, 'qbdrugs:delivery:' .. row.id .. ':' .. suffix, terms)
+    return exports.kora_inventory:ExecutePlayerExchange(src, 'qbdrugs:delivery:' .. row.id .. ':' .. suffix, terms)
 end
 local function sendMail(cid, data, completion)
-    if GetResourceState('qbphone-stevie') ~= 'started' and GetResourceState('qb-phone') ~= 'started' then return end
+    if GetResourceState('kora_phone-stevie') ~= 'started' and GetResourceState('qb-phone') ~= 'started' then return end
     local mail = { sender = data.dealer, subject = completion and 'Delivery completed' or 'Delivery request',
         message = completion and ('Your delivery has been settled. Reputation change: %s.'):format(completion.dealerRep)
             or ('Deliver %d %s to %s.'):format(data.amount, data.itemData.item, data.location.label) }
@@ -308,7 +308,7 @@ registerShopPolicy()
 loadDealers()
 ready = true
 AddEventHandler('onResourceStop', function(name)
-    if name == 'qbinventory' then ready = false end
+    if name == 'kora_inventory' then ready = false end
 end)
 AddEventHandler('qbinventory:server:ready', function()
     registerShopPolicy(); loadDealers(); ready = true

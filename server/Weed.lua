@@ -102,7 +102,7 @@ local jointItem = {
     ak47_weed = 'ak47_joint',
     amnesia_weed = 'amnesia_joint',
 }
-exports.qbcore:createUseable('rolling_paper', function(source, item)
+exports.kora_core:createUseable('rolling_paper', function(source, item)
     local src = source
     local hasItem = findWeedItem(src)
     if not hasItem then QB.notify.send(src, {title = 'qb-drugs', message = 'You need a weed item to roll', type = 'error'}) return end

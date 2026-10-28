@@ -7,7 +7,7 @@ QB = { sql = {
     end,
     query = function(sql) queries[#queries + 1] = sql; return {} end,
 } }
-GetCurrentResourceName = function() return 'qbdrugs' end
+GetCurrentResourceName = function() return 'kora_drugs' end
 LoadResourceFile = function(_, path)
     if not schema then return nil end
     local file = assert(io.open(path))

@@ -1,4 +1,4 @@
--- Loads plant types from `qbdrugs` (rows where step = '<Type>:pick'),
+-- Loads plant types from `kora_drugs` (rows where step = '<Type>:pick'),
 -- publishes them to clients, and handles picking.
 
 ---@class PlantLocation
@@ -58,7 +58,7 @@ local function registerPick(plantType)
             TriggerClientEvent('qb_drugs:client:plantRespawned' .. plantType, -1, id)
         end)
 
-        exports.qbinventory:addItem(src, plant.data.item, math.random(1, plant.data.maxGive or 1))
+        exports.kora_inventory:addItem(src, plant.data.item, math.random(1, plant.data.maxGive or 1))
         startCooldown(src, 'pick', plant.data.pickingData and plant.data.pickingData.time or DefaultProgress.time)
     end)
 end

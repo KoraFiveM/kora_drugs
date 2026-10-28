@@ -9,7 +9,7 @@ function itemCheck(recipe)
     for _, v in pairs(recipe.give) do
         if not exports['qb-inventory']:HasItem(v.item, v.amount) then
             hasAll = false
-            local itemData = exports.qbcore:getShared('items', v.item)
+            local itemData = exports.kora_core:getShared('items', v.item)
             QB.notify.send({ title = 'qb-drugs', message = 'You Need ' .. v.amount .. ' ' .. (itemData and itemData.label or v.item), type = 'error' })
         end
     end
@@ -61,7 +61,7 @@ end)
 
 function inGang(gang)
     if not gang then return true end
-    local player = exports.qbcore:getPlayerData()
+    local player = exports.kora_core:getPlayerData()
     return player and player.gang and player.gang.name == gang or false
 end
 
@@ -94,7 +94,7 @@ function craftTrigger(drug, step, data, location, key)
 end
 
 function createBox(coords, rotation, options)
-    return exports.qbtarget:addBoxZone({
+    return exports.kora_target:addBoxZone({
         coords = coords,
         size = vector3(2,2,2),
         rotation = rotation,
@@ -105,13 +105,13 @@ end
 function createObject(object, coords, rotation, options)
     local ped = QB.entities.create(object, coords, {freeze = true, invincible = true})
     SetEntityHeading(ped, coords.w)
-    exports.qbtarget:addEntity(ped, options)
+    exports.kora_target:addEntity(ped, options)
     return ped
 end
 
 local function removeZones(ids)
     for _, id in ipairs(ids) do
-        pcall(function() exports.qbtarget:removeZone(id) end)
+        pcall(function() exports.kora_target:removeZone(id) end)
     end
 end
 
@@ -124,7 +124,7 @@ function LabTeleport(name, locale)
     end
 
     local function zone(coords, label, icon, onSelect, canInteract)
-        zones[#zones + 1] = exports.qbtarget:addBoxZone({
+        zones[#zones + 1] = exports.kora_target:addBoxZone({
             coords = vector3(coords.x, coords.y, coords.z),
             size = vector3(1.5, 1.5, 1.5),
             options = { { label = label, icon = icon, onSelect = onSelect, canInteract = canInteract } },

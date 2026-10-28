@@ -13,7 +13,7 @@ cleanVec = function(v) return type(v) == 'table' and v.x and v.y and v.z and v o
 cleanName = function(v) return type(v) == 'string' and v:match('^[%w _%-]+$') and v or nil end
 local clock, near, bucket, admin = 1000, true, 0, false
 local realTime = os.time; os.time = function() return clock end
-GetCurrentResourceName = function() return 'qbdrugs' end
+GetCurrentResourceName = function() return 'kora_drugs' end
 GetGameTimer = function() return clock * 1000 end
 GetResourceState = function() return 'started' end
 GetPlayerRoutingBucket = function() return bucket end
@@ -80,7 +80,7 @@ local inv = {
         exchanges=exchanges+1; receipts[key]={citizenid=terms.citizenid,terms=clone(terms)}; return clone(receipts[key])
     end,
 }
-exports=setmetatable({ ['qb-core']={GetCoreObject=function() return core end}, ['qb-inventory']=inv, qbinventory=inv, ['qb-phone']={sendNewMailToOffline=function(_,cid,mail) mails[#mails+1]={cid=cid,mail=mail} end} }, {
+exports=setmetatable({ ['qb-core']={GetCoreObject=function() return core end}, ['qb-inventory']=inv, kora_inventory=inv, ['qb-phone']={sendNewMailToOffline=function(_,cid,mail) mails[#mails+1]={cid=cid,mail=mail} end} }, {
     __call=function(_, name, fn) registered[name]=fn end,
 })
 QB={sql={query=sql},compat={provideExport=function(_,name,fn) registered['legacy:'..name]=fn end},
@@ -132,7 +132,7 @@ exchangeFailure=true; check(begin(1,'Test')==nil,'full inventory issue remains r
 exchangeFailure=false; delivery=assert(resume(1)); check(#rows==prepared and delivery.status=='issued','failed issue resumes same session')
 -- Session is keyed by character, not recycled source number.
 data.citizenid='B'; check(resume(1)==nil and settle(1,{id=delivery.id})==nil,'new character cannot claim old session'); data.citizenid='A'
-handlers.onResourceStop('qbinventory'); check(registered['qbdrugs-dealer-1'].access(1)==false and resume(1)==nil,'dependency stop closes policy')
+handlers.onResourceStop('kora_inventory'); check(registered['qbdrugs-dealer-1'].access(1)==false and resume(1)==nil,'dependency stop closes policy')
 handlers['qbinventory:server:ready'](); check(registered['qbdrugs-dealer-1'].access(1)==true,'ready event restores policy')
 commands.newdealer(1,{'Denied',0,23});check(#rosterRows==1,'nonadmin roster mutation denied')
 admin=true;commands.newdealer(1,{'Added',0,23});check(#rosterRows==2 and registered.GetDealers().Added~=nil,'admin dealer persisted and published')

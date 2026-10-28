@@ -77,7 +77,7 @@ local function resetCook()
 	end
 	RemoveAnimDict(carryDict)
 	if bucketObject then
-		exports.qbtarget:removeEntity(bucketObject)
+		exports.kora_target:removeEntity(bucketObject)
 		DeleteEntity(bucketObject)
 		bucketObject = nil
 	end
@@ -140,7 +140,7 @@ local function runScene(opts)
 end
 
 local function addStepZone(cfg, options)
-	return exports.qbtarget:addBoxZone({
+	return exports.kora_target:addBoxZone({
 		coords   = cfg.coords,
 		size     = cfg.size or defaultSize,
 		rotation = cfg.heading or defaultHeading,
@@ -159,7 +159,7 @@ local zones = {}
 local function stepZone(name, optionsFn)
 	OnDrugs('Meth', name, function(entry)
 		if zones[name] then
-			pcall(function() exports.qbtarget:removeZone(zones[name]) end)
+			pcall(function() exports.kora_target:removeZone(zones[name]) end)
 			zones[name] = nil
 		end
 		stations[name] = toStation(entry and entry.locations)
@@ -332,7 +332,7 @@ local function pickUpTray()
 end
 
 local function bagUp()
-	exports.qbtarget:removeEntity(bucketObject)
+	exports.kora_target:removeEntity(bucketObject)
 	DeleteEntity(bucketObject)
 	bucketObject = nil
 
@@ -345,7 +345,7 @@ end
 
 local function attachBucketTarget(bucket)
 	local label, icon = targetText(Drugs.Meth and Drugs.Meth.bag, 'targetLabel', 'targetIcon', 'meth.bag')
-	exports.qbtarget:addEntity(bucket, {
+	exports.kora_target:addEntity(bucket, {
 		{
 			label       = label,
 			icon        = icon,

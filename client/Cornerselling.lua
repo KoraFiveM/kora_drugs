@@ -134,7 +134,7 @@ local function findBuyer()
     until QB.distance.entity(buyer, 2.0) or not isSelling
     if not isSelling then endBuyer() return end
     TaskTurnPedToFaceEntity(buyer, PlayerPedId(), -1)
-    exports.qbtarget:addEntity(buyer, {
+    exports.kora_target:addEntity(buyer, {
         {
             icon = 'fas fa-handshake',
             label = 'Sell to buyer',

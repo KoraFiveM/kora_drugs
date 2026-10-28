@@ -34,7 +34,7 @@ local function spawnProp(name, id, spot)
     local settings = Settings[name]
     if not settings or not settings.model then return end
     local obj = QB.entities.create(settings.model, spot.coords, { freeze = true, invincible = true })
-    exports.qbtarget:addEntity(obj, {
+    exports.kora_target:addEntity(obj, {
         {
             icon = settings.icon or QB.lang(name .. '.pick.icon') or 'coca-leaf',
             label = settings.targetLabel or QB.lang(name .. '.pick.target') or 'Pick Drugs',

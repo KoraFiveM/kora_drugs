@@ -90,7 +90,7 @@ AddEventHandler('playerDropped', function()
 end)
 
 -- ----------------------------------------------------------------------------
--- The `qbdrugs` table: one row per step ('Cocaine:lab', 'Weed:pick', ...)
+-- The `kora_drugs` table: one row per step ('Cocaine:lab', 'Weed:pick', ...)
 -- ----------------------------------------------------------------------------
 
 function dbRow(step)
