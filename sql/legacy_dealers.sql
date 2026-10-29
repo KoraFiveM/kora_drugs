@@ -1,4 +1,3 @@
--- Retain the upstream dealer roster schema so existing rows can be read without copying or deleting them.
 CREATE TABLE IF NOT EXISTS `dealers` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `name` varchar(50) NOT NULL DEFAULT '0',

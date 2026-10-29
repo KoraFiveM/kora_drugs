@@ -11,7 +11,7 @@ dependency 'kora_core'
 dependency 'kora_sql'
 dependency 'kora_inventory'
 dependency 'kora_target'
-dependency 'kora_weathersync'
+-- dependency 'kora_weathersync'
 provide 'qb-drugs'
 shared_scripts {
     '@kora_lib/init.lua',
