@@ -280,7 +280,7 @@ local function applySettings(data, s)
     return data
 end
 
-adminCallback('qbdrugs:creator:list', function()
+local function plantList()
     local list = {}
     for _, row in ipairs(QB.sql.query('SELECT * FROM `qbdrugs`', {}) or {}) do
         if row.step:match('^%w+:pick$') then
@@ -296,7 +296,9 @@ adminCallback('qbdrugs:creator:list', function()
     end
     table.sort(list, function(a, b) return a.id < b.id end)
     return list
-end)
+end
+
+adminCallback('qbdrugs:creator:list', plantList)
 
 adminCallback('qbdrugs:creator:get', function(_, id)
     local row = plantRow(id)
@@ -844,14 +846,16 @@ end
 -- Cornerselling page
 -- ----------------------------------------------------------------------------
 
-adminCallback('qbdrugs:creator:corner:get', function()
+local function cornerPayload()
     local event = getEvent(cornerStep)
     local shared, items = allItems(), {}
     for name in pairs(event.data.pricing or {}) do
         items[name] = itemEntry(shared, name)
     end
     return { step = cornerStep, data = event.data, items = items }
-end)
+end
+
+adminCallback('qbdrugs:creator:corner:get', cornerPayload)
 
 adminCallback('qbdrugs:creator:corner:search', function(_, query)
     local priced = getEvent(cornerStep).data.pricing or {}
@@ -1104,6 +1108,7 @@ local function seedEvent(step, kind)
     elseif kind.fillLocations and not decodeJson(row.locations, {}).coords then
         what = 'filled the position of'
         ok, err = QB.sql.update('UPDATE `qbdrugs` SET `locations` = ? WHERE `step` = ?', { json.encode(initial()), step })
+        InvalidateCreatorCache()
     else
         return
     end
@@ -1168,6 +1173,33 @@ CreateThread(function()
             if not ok then QB.print.warn(('[qbdrugs] could not set up %s: %s'):format(step, tostring(err))) end
         end
     end
+end)
+
+-- Everything the creator shows when it opens, in one callback. The four pages load side by side.
+local function runTogether(tasks)
+    local promises, results = {}, {}
+    for i, task in ipairs(tasks) do
+        local p = promise.new()
+        promises[i] = p
+        CreateThread(function()
+            local ok, value = pcall(task)
+            p:resolve({ ok = ok, value = value })
+        end)
+    end
+    for i, p in ipairs(promises) do
+        local outcome = Citizen.Await(p)
+        if not outcome.ok then error(outcome.value, 0) end
+        results[i] = outcome.value
+    end
+    return results
+end
+
+adminCallback('qbdrugs:creator:open', function()
+    return CachedCreatorData(function()
+        local ok, r = pcall(runTogether, { plantList, cornerPayload, customPayload, recipesPayload })
+        if not ok then return fail('Could not load the creator data.') end
+        return { plants = r[1], corner = r[2], customs = r[3], recipes = r[4] }
+    end)
 end)
 
 RegisterCommand('drugCreator', function(source)

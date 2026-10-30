@@ -153,8 +153,14 @@ local function modelExists(model)
 end
 
 
+-- The plants page list. Fetched when the creator opens, and again after a plant is saved, created or deleted.
+local plantList, plantsStale = {}, false
+
 local function plantsView()
-    local list = QB.callback.trigger('qbdrugs:creator:list') or {}
+    if plantsStale then
+        plantList, plantsStale = QB.callback.trigger('qbdrugs:creator:list') or plantList, false
+    end
+    local list = plantList
     local items = {}
     for _, plant in ipairs(list) do
         items[#items + 1] = {
@@ -914,6 +920,7 @@ end
 local function persist(patch)
     local result, err = QB.callback.trigger('qbdrugs:creator:save', selected.id, patch)
     if not result then return false, err or 'Failed to save.' end
+    plantsStale = true
     selected = result
     return true
 end
@@ -928,6 +935,7 @@ local function createPlant(values)
     if not modelExists(values.model) then return fail('Unknown prop model.') end
     local record, err = QB.callback.trigger('qbdrugs:creator:create', values.name, values.model, values.item)
     if not record then return fail(err or 'Failed to create plant.') end
+    plantsStale = true
     selected, currentView = record, 'data'
     return refresh(notice('Plant created.'))
 end
@@ -966,6 +974,7 @@ local function deleteSelected()
 
     local ok, err = QB.callback.trigger('qbdrugs:creator:delete', selected.id)
     if not ok then return fail(err or 'Failed to delete plant.') end
+    plantsStale = true
     selected, currentView = nil, 'plants'
     return refresh(notice('Plant deleted.'))
 end
@@ -1513,24 +1522,42 @@ local function runPendingTool()
     end
 end
 
-local function open()
-    local list, err = QB.callback.trigger('qbdrugs:creator:list')
-    if not list then
-        toast('Plant Creator', err or 'Admin permission required.')
-        return
-    end
+-- Fills every page from the one server callback. Returns false, err when it fails.
+local function loadCreator()
+    local data, err = QB.callback.trigger('qbdrugs:creator:open')
+    if not data then return false, err end
 
+    plantList, plantsStale = data.plants or {}, false
     corner.query, corner.results, corner.total = nil, {}, 0
-    loadCorner()
-    loadCustoms()
+    corner.data, corner.items = data.corner.data, data.corner.items or {}
+    applyCustoms(data.customs)
     clearRecipeSearch()
-    loadRecipes()
+    setRecipes(data.recipes)
+    return true
+end
+
+local function open()
+    -- The window opens at once with a loading page; the data replaces it when it arrives.
+    QB.nui.updateApp(APP_ID, { navigation = { {
+        id = currentView, label = 'Drug Creator', icon = 'Leaf',
+        content = { title = 'Drug Creator', blocks = { { type = 'empty', title = 'Loading Drug Creator…', icon = 'Leaf' } } },
+    } } })
+
+    CreateThread(function()
+        local ok, err = loadCreator()
+        if not ok then
+            QB.nui.closeApp(APP_ID)
+            toast('Plant Creator', err or 'Admin permission required.')
+            return
+        end
+        QB.nui.updateApp(APP_ID, { navigation = buildNavigation() })
+    end)
 
     while true do
-        QB.nui.updateApp(APP_ID, { navigation = buildNavigation() })
         QB.nui.openApp(APP_ID, { viewId = currentView })
         if not pendingTool then break end
         runPendingTool()
+        QB.nui.updateApp(APP_ID, { navigation = buildNavigation() })
     end
 end
 

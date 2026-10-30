@@ -93,6 +93,31 @@ end)
 -- The `kora_drugs` table: one row per step ('Cocaine:lab', 'Weed:pick', ...)
 -- ----------------------------------------------------------------------------
 
+-- Creator open data is cached for Config.creator.cacheSeconds. Every write to the table clears it.
+local creatorCache, creatorGeneration = nil, 0
+
+function InvalidateCreatorCache()
+    creatorCache, creatorGeneration = nil, creatorGeneration + 1
+end
+
+-- Returns build()'s result, reusing it while fresh. A write that lands while build() is running
+-- bumps the generation, so that result is returned but not kept.
+function CachedCreatorData(build)
+    local seconds = Config and Config.creator and tonumber(Config.creator.cacheSeconds) or 0
+    if seconds <= 0 then
+        creatorCache = nil
+        return build()
+    end
+
+    local now = GetGameTimer()
+    if creatorCache and now - creatorCache.at < seconds * 1000 then return creatorCache.value end
+
+    local generation = creatorGeneration
+    local value, err = build()
+    if value and generation == creatorGeneration then creatorCache = { at = now, value = value } end
+    return value, err
+end
+
 function dbRow(step)
     local rows = QB.sql.query('SELECT * FROM `qbdrugs` WHERE `step` = ? LIMIT 1', { step })
     return rows and rows[1] or nil
@@ -100,20 +125,25 @@ end
 
 -- Inserts the row, or updates it when it already exists. Returns ok, err.
 function dbSave(step, data, locations)
+    InvalidateCreatorCache()
+    local function done(...) InvalidateCreatorCache() return ... end
     if dbRow(step) then
-        return QB.sql.update(
+        return done(QB.sql.update(
             'UPDATE `qbdrugs` SET `data` = ?, `locations` = ? WHERE `step` = ?',
             { json.encode(data), json.encode(locations), step }
-        )
+        ))
     end
-    return QB.sql.update(
+    return done(QB.sql.update(
         'INSERT INTO `qbdrugs` (`step`, `data`, `locations`) VALUES (?, ?, ?)',
         { step, json.encode(data), json.encode(locations) }
-    )
+    ))
 end
 
 function dbDelete(step)
-    return QB.sql.update('DELETE FROM `qbdrugs` WHERE `step` = ?', { step })
+    InvalidateCreatorCache()
+    local ok, err = QB.sql.update('DELETE FROM `qbdrugs` WHERE `step` = ?', { step })
+    InvalidateCreatorCache()
+    return ok, err
 end
 
 function hasItems(src, itemList)
