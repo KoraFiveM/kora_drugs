@@ -4,7 +4,7 @@ local function removeDelivery()
     if deliveryZone then exports.kora_target:removeZone(deliveryZone); deliveryZone = nil end
 end
 local function message(text, kind)
-    QB.notify.send({ title = 'Dealer', message = text, type = kind or 'inform' })
+    QB.notify.send({ title = 'Dealer', message = text, type = kind or 'info' })
 end
 local function finished(result)
     removeDelivery()
