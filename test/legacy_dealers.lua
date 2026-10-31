@@ -83,7 +83,7 @@ local inv = {
 exports=setmetatable({ ['qb-core']={GetCoreObject=function() return core end}, ['qb-inventory']=inv, kora_inventory=inv, ['qb-phone']={sendNewMailToOffline=function(_,cid,mail) mails[#mails+1]={cid=cid,mail=mail} end} }, {
     __call=function(_, name, fn) registered[name]=fn end,
 })
-QB={sql={query=sql},compat={provideExport=function(_,name,fn) registered['legacy:'..name]=fn end},
+Kora={sql={query=sql},compat={provideExport=function(_,name,fn) registered['legacy:'..name]=fn end},
     callback={register=function(name,fn) callbacks[name]=fn end},notify={send=function() end}}
 dofile('shared/legacy_dealers.lua')
 dofile('server/legacy_dealers.lua')
@@ -115,9 +115,9 @@ failUpdate=true; check(begin(1,'Test')==nil,'issue acknowledgement failure expos
 local afterIssue=exchanges; delivery=assert(resume(1)); check(exchanges==afterIssue and delivery.status=='issued','issue recovery reuses receipt')
 failUpdate=true; check(settle(1,{id=delivery.id})==nil,'settlement snapshot failure grants nothing')
 local beforeSettle=exchanges
-local oldSql=QB.sql.query
-QB.sql.query=function(query,args)
-    if query:find('`completed_at`',1,true) then QB.sql.query=oldSql; return nil,'simulated completion ack failure' end
+local oldSql=Kora.sql.query
+Kora.sql.query=function(query,args)
+    if query:find('`completed_at`',1,true) then Kora.sql.query=oldSql; return nil,'simulated completion ack failure' end
     return oldSql(query,args)
 end
 check(settle(1,{id=delivery.id})==nil and exchanges==beforeSettle+1,'completion ack failure after exactly one exchange')

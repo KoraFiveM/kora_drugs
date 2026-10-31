@@ -1,7 +1,7 @@
 -- Run from kora_drugs: lua test/creator_cache.lua
 local now = 0
 local updates = 0
-QB = { sql = {
+Kora = { sql = {
     ready = function() return true end,
     query = function() return {} end,
     update = function() updates = updates + 1; return true end,

@@ -10,7 +10,7 @@ function itemCheck(recipe)
         if not exports['qb-inventory']:HasItem(v.item, v.amount) then
             hasAll = false
             local itemData = exports.kora_core:getShared('items', v.item)
-            QB.notify.send({ title = 'qb-drugs', message = 'You Need ' .. v.amount .. ' ' .. (itemData and itemData.label or v.item), type = 'error' })
+            Kora.notify.send({ title = 'qb-drugs', message = 'You Need ' .. v.amount .. ' ' .. (itemData and itemData.label or v.item), type = 'error' })
         end
     end
     return hasAll
@@ -44,7 +44,7 @@ RegisterNetEvent('qbdrugs:client:drugsReload', function(drug, step, entry)
 end)
 
 CreateThread(function()
-    local all = QB.state.awaitGlobal('Drugs', 30000, 100)
+    local all = Kora.state.awaitGlobal('Drugs', 30000, 100)
     if not all then
         print('[qbdrugs] timed out waiting for GlobalState.Drugs')
         return
@@ -81,8 +81,8 @@ function craftTrigger(drug, step, data, location, key)
         done = hook.run(data, location)
     else
         local progress = data.progress or {}
-        done = QB.progressbar.start({
-            label = progress.label or (info.locale and QB.lang(info.locale .. '.progress')) or '',
+        done = Kora.progressbar.start({
+            label = progress.label or (info.locale and Kora.lang(info.locale .. '.progress')) or '',
             duration = progress.time or DefaultProgress.time,
             disable = progress.disable or DefaultProgress.disable,
             anim = data.anim or DefaultProgress.anim,
@@ -103,7 +103,7 @@ function createBox(coords, rotation, options)
 end
 
 function createObject(object, coords, rotation, options)
-    local ped = QB.entities.create(object, coords, {freeze = true, invincible = true})
+    local ped = Kora.entities.create(object, coords, {freeze = true, invincible = true})
     SetEntityHeading(ped, coords.w)
     exports.kora_target:addEntity(ped, options)
     return ped
@@ -143,23 +143,23 @@ function LabTeleport(name, locale)
         for key, location in ipairs(lab.locations) do
             if location.enter and location.exit then
                 zone(location.enter,
-                    data.enterTarget or QB.lang(locale .. '.enter.target'),
-                    QB.lang(locale .. '.enter.icon'),
+                    data.enterTarget or Kora.lang(locale .. '.enter.target'),
+                    Kora.lang(locale .. '.enter.icon'),
                     function()
-                        if not QB.callback.trigger(('qbdrugs:%s:Tele'):format(name), key) then return end
-                        QB.visuals.fade(vector3(location.exit.x, location.exit.y, location.exit.z), 500)
+                        if not Kora.callback.trigger(('qbdrugs:%s:Tele'):format(name), key) then return end
+                        Kora.visuals.fade(vector3(location.exit.x, location.exit.y, location.exit.z), 500)
                     end,
                     function() return inGang(location.gang) end)
             end
         end
 
         zone(lab.locations[1].exit,
-            data.exitTarget or QB.lang(locale .. '.exit.target'),
-            QB.lang(locale .. '.exit.icon'),
+            data.exitTarget or Kora.lang(locale .. '.exit.target'),
+            Kora.lang(locale .. '.exit.icon'),
             function()
-                local back = QB.callback.trigger(('qbdrugs:%s:TeleOut'):format(name))
+                local back = Kora.callback.trigger(('qbdrugs:%s:TeleOut'):format(name))
                 if not back then return end
-                QB.visuals.fade(back, 500)
+                Kora.visuals.fade(back, 500)
             end)
     end
 end
@@ -171,7 +171,7 @@ local function clearCraft(name)
     if zones then
         removeZones(zones.boxes)
         for _, object in ipairs(zones.objects) do
-            pcall(function() QB.entities.remove(object) end)
+            pcall(function() Kora.entities.remove(object) end)
         end
     end
     craftZones[name] = { boxes = {}, objects = {} }
@@ -194,8 +194,8 @@ local function buildCraft(drug, step)
             if c then
                 local options = {
                     {
-                        label = data.targetLabel or (locale and QB.lang(locale .. '.target')),
-                        icon = data.targetIcon or (locale and QB.lang(locale .. '.icon')),
+                        label = data.targetLabel or (locale and Kora.lang(locale .. '.target')),
+                        icon = data.targetIcon or (locale and Kora.lang(locale .. '.icon')),
                         onSelect = function()
                             craftTrigger(drug, step, data, location, key)
                         end,

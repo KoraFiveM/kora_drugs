@@ -18,12 +18,12 @@ RegisterNetEvent('qbdrugs:server:craft', function(drug, step, key)
     local location = savedLocation(entry, key)
     if not (location and location.coords) then return end
     if not isNear(src, location.coords) then
-        QB.print.warn(('%s tried %s from too far away'):format(src, name))
+        Kora.print.warn(('%s tried %s from too far away'):format(src, name))
         return
     end
 
     if onCooldown(src, 'craft') then
-        QB.print.warn(QB.lang('Functions.timeout', src, name))
+        Kora.print.warn(Kora.lang('Functions.timeout', src, name))
         return
     end
     startCooldown(src, 'craft', craftCooldown)
@@ -34,6 +34,6 @@ RegisterNetEvent('qbdrugs:server:craft', function(drug, step, key)
     local recipe, info = stepRecipe(name, entry.data)
     if not recipe then return end
     if craft(src, recipe, hook.meta and hook.meta()) and info.successNotify then
-        QB.notify.send(src, info.successNotify)
+        Kora.notify.send(src, info.successNotify)
     end
 end)

@@ -57,7 +57,7 @@ else
     end)
 
     CreateThread(function()
-        local all = QB.state.awaitGlobal('Drugs', 30000, 100)
+        local all = Kora.state.awaitGlobal('Drugs', 30000, 100)
         if all and all.Recipes then fromEntry(all.Recipes.settings) end
     end)
 end

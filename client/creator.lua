@@ -121,12 +121,12 @@ end
 
 -- Asks the admin to confirm. True when they did.
 local function confirmed(title, message)
-    local answer = QB.nui.openAlert({ title = title, message = message, confirmLabel = 'Delete' })
+    local answer = Kora.nui.openAlert({ title = title, message = message, confirmLabel = 'Delete' })
     return answer and answer.confirmed == true
 end
 
 local function toast(title, message)
-    QB.notify.send({ title = title, message = message, type = 'error' })
+    Kora.notify.send({ title = title, message = message, type = 'error' })
 end
 
 local function appended(list, entry)
@@ -158,7 +158,7 @@ local plantList, plantsStale = {}, false
 
 local function plantsView()
     if plantsStale then
-        plantList, plantsStale = QB.callback.trigger('qbdrugs:creator:list') or plantList, false
+        plantList, plantsStale = Kora.callback.trigger('qbdrugs:creator:list') or plantList, false
     end
     local list = plantList
     local items = {}
@@ -909,7 +909,7 @@ end
 
 local function refresh(message)
     local navigation = buildNavigation()
-    QB.nui.updateApp(APP_ID, { navigation = navigation })
+    Kora.nui.updateApp(APP_ID, { navigation = navigation })
     return { update = { navigation = navigation }, notice = message }
 end
 
@@ -918,7 +918,7 @@ local function fail(message)
 end
 
 local function persist(patch)
-    local result, err = QB.callback.trigger('qbdrugs:creator:save', selected.id, patch)
+    local result, err = Kora.callback.trigger('qbdrugs:creator:save', selected.id, patch)
     if not result then return false, err or 'Failed to save.' end
     plantsStale = true
     selected = result
@@ -933,7 +933,7 @@ end
 
 local function createPlant(values)
     if not modelExists(values.model) then return fail('Unknown prop model.') end
-    local record, err = QB.callback.trigger('qbdrugs:creator:create', values.name, values.model, values.item)
+    local record, err = Kora.callback.trigger('qbdrugs:creator:create', values.name, values.model, values.item)
     if not record then return fail(err or 'Failed to create plant.') end
     plantsStale = true
     selected, currentView = record, 'data'
@@ -941,7 +941,7 @@ local function createPlant(values)
 end
 
 local function selectPlant(id)
-    local record, err = QB.callback.trigger('qbdrugs:creator:get', id)
+    local record, err = Kora.callback.trigger('qbdrugs:creator:get', id)
     if not record then return fail(err or 'Failed to load plant.') end
     selected, currentView = record, 'data'
     return refresh()
@@ -972,7 +972,7 @@ end
 local function deleteSelected()
     if not confirmed('Delete plant?', ('This removes %s and all of its spots.'):format(selected.id)) then return refresh() end
 
-    local ok, err = QB.callback.trigger('qbdrugs:creator:delete', selected.id)
+    local ok, err = Kora.callback.trigger('qbdrugs:creator:delete', selected.id)
     if not ok then return fail(err or 'Failed to delete plant.') end
     plantsStale = true
     selected, currentView = nil, 'plants'
@@ -980,7 +980,7 @@ local function deleteSelected()
 end
 
 local function persistEvent(patch)
-    local result, err = QB.callback.trigger('qbdrugs:creator:event:save', selectedEvent.step, patch)
+    local result, err = Kora.callback.trigger('qbdrugs:creator:event:save', selectedEvent.step, patch)
     if not result then return false, err or 'Failed to save.' end
     selectedEvent = result
     return true
@@ -988,7 +988,7 @@ end
 
 local function selectEvent(step)
     if not eventInfo(step) then return fail('Unknown event.') end
-    local record, err = QB.callback.trigger('qbdrugs:creator:event:get', step)
+    local record, err = Kora.callback.trigger('qbdrugs:creator:event:get', step)
     if not record then return fail(err or 'Failed to load event.') end
     selectedEvent, currentView = record, 'event'
     eventRevision = eventRevision + 1
@@ -1052,7 +1052,7 @@ end
 
 -- Loads one page's data from the server. apply(result) stores it.
 local function loadPage(callback, failMessage, apply)
-    local result, err = QB.callback.trigger(callback)
+    local result, err = Kora.callback.trigger(callback)
     if not result then
         toast('Drug Creator', err or failMessage)
         return false
@@ -1068,14 +1068,14 @@ local function loadCorner()
 end
 
 local function persistCorner(data)
-    local result, err = QB.callback.trigger('qbdrugs:creator:event:save', CORNER_STEP, { data = data })
+    local result, err = Kora.callback.trigger('qbdrugs:creator:event:save', CORNER_STEP, { data = data })
     if not result then return false, err or 'Failed to save.' end
     corner.data = result.data
     return true
 end
 
 local function askPrice(label, current, title)
-    local result = QB.nui.openInputDialog({
+    local result = Kora.nui.openInputDialog({
         { id = 'price', label = 'Price (cash each)', type = 'number', min = 0, max = 1000000, default = current, required = true },
     }, title, label)
     if not result or result.cancelled then return nil end
@@ -1111,7 +1111,7 @@ local function cornerAction(actionId, values)
             return refresh()
         end
 
-        local result, err = QB.callback.trigger('qbdrugs:creator:corner:search', query)
+        local result, err = Kora.callback.trigger('qbdrugs:creator:corner:search', query)
         if not result then return fail(err or 'The search failed.') end
         corner.query, corner.results = query, result.results or {}
         corner.total = result.total or #corner.results
@@ -1185,7 +1185,7 @@ local function loadRecipes()
 end
 
 local function askAmount(label, title, current)
-    local result = QB.nui.openInputDialog({
+    local result = Kora.nui.openInputDialog({
         { id = 'amount', label = 'Amount needed', type = 'number', min = 1, max = 1000, default = current and current.amount or 1, required = true },
         {
             id = 'keep', label = 'Used up when crafting?', type = 'select',
@@ -1201,7 +1201,7 @@ local function askAmount(label, title, current)
 end
 
 local function saveRecipe(recipe, give, message)
-    local result, err = QB.callback.trigger('qbdrugs:creator:recipes:set', recipe.id, give)
+    local result, err = Kora.callback.trigger('qbdrugs:creator:recipes:set', recipe.id, give)
     if not result then return fail(err or 'Failed to save.') end
     setRecipes(result)
 
@@ -1222,7 +1222,7 @@ local function recipeAction(actionId, values)
         local drug = text(values.drug)
         local name = text(values.name)
         local item = text(values.item)
-        local result, err = QB.callback.trigger('qbdrugs:creator:recipes:create', drug, name, item, tonumber(values.amount) or 1)
+        local result, err = Kora.callback.trigger('qbdrugs:creator:recipes:create', drug, name, item, tonumber(values.amount) or 1)
         if not result then return fail(err or 'Failed to create the recipe.') end
 
         setRecipes(result)
@@ -1246,7 +1246,7 @@ local function recipeAction(actionId, values)
 
     if actionId == 'recipe:receive' then
         local item = text(values.item)
-        local result, err = QB.callback.trigger('qbdrugs:creator:recipes:receive', recipe.id, item, tonumber(values.amount) or 1)
+        local result, err = Kora.callback.trigger('qbdrugs:creator:recipes:receive', recipe.id, item, tonumber(values.amount) or 1)
         if not result then return fail(err or 'Failed to save.') end
         setRecipes(result)
         return refresh(notice('Saved.'))
@@ -1256,7 +1256,7 @@ local function recipeAction(actionId, values)
         local message = ('This removes %s. Events that used it go back to their default recipe.'):format(recipe.label)
         if not confirmed('Delete recipe?', message) then return refresh() end
 
-        local result, err = QB.callback.trigger('qbdrugs:creator:recipes:delete', recipe.id)
+        local result, err = Kora.callback.trigger('qbdrugs:creator:recipes:delete', recipe.id)
         if not result then return fail(err or 'Failed to delete the recipe.') end
         setRecipes(result)
         recipes.selected = nil
@@ -1272,7 +1272,7 @@ local function recipeAction(actionId, values)
             return refresh()
         end
 
-        local result, err = QB.callback.trigger('qbdrugs:creator:recipes:search', query, recipe.id)
+        local result, err = Kora.callback.trigger('qbdrugs:creator:recipes:search', query, recipe.id)
         if not result then return fail(err or 'The search failed.') end
         recipes.query, recipes.results = query, result.results or {}
         recipes.total = result.total or #recipes.results
@@ -1330,7 +1330,7 @@ end
 local function customAction(actionId, values)
     if actionId == 'custom:create' then
         local name = text(values.name)
-        local result, err = QB.callback.trigger('qbdrugs:creator:custom:drug:create', name)
+        local result, err = Kora.callback.trigger('qbdrugs:creator:custom:drug:create', name)
         if not result then return fail(err or 'Failed to create the drug.') end
 
         applyCustoms(result)
@@ -1342,7 +1342,7 @@ local function customAction(actionId, values)
         if drugName == '' then return fail('Create a drug on the Custom drugs tab first.') end
 
         local name = text(values.name)
-        local result, err = QB.callback.trigger('qbdrugs:creator:custom:event:create', drugName, name)
+        local result, err = Kora.callback.trigger('qbdrugs:creator:custom:event:create', drugName, name)
         if not result then return fail(err or 'Failed to add the event.') end
 
         applyCustoms(result)
@@ -1360,7 +1360,7 @@ local function customAction(actionId, values)
         local message = ('This removes %s and all %d of its events. Its recipes stay on the Recipes page.'):format(drug.name, #drug.events)
         if not confirmed('Delete drug?', message) then return refresh() end
 
-        local result, err = QB.callback.trigger('qbdrugs:creator:custom:drug:delete', drug.name)
+        local result, err = Kora.callback.trigger('qbdrugs:creator:custom:drug:delete', drug.name)
         if not result then return fail(err or 'Failed to delete the drug.') end
 
         if selectedEvent and selectedEvent.step:match('^' .. drug.name .. ':') then selectedEvent = nil end
@@ -1374,7 +1374,7 @@ local function customAction(actionId, values)
 
         if not confirmed('Delete event?', ('This removes %s and all of its locations.'):format(selectedEvent.step)) then return refresh() end
 
-        local result, err = QB.callback.trigger('qbdrugs:creator:custom:event:delete', selectedEvent.step)
+        local result, err = Kora.callback.trigger('qbdrugs:creator:custom:event:delete', selectedEvent.step)
         if not result then return fail(err or 'Failed to delete the event.') end
 
         selectedEvent, currentView = nil, 'events'
@@ -1392,7 +1392,7 @@ local function deleteBaseEvent()
     local message = ('This removes %s and all of its locations. You can restore it from the Events page.'):format(info.label)
     if not confirmed('Delete event?', message) then return refresh() end
 
-    local result, err = QB.callback.trigger('qbdrugs:creator:event:delete', selectedEvent.step)
+    local result, err = Kora.callback.trigger('qbdrugs:creator:event:delete', selectedEvent.step)
     if not result then return fail(err or 'Failed to delete the event.') end
 
     applyCustoms(result)
@@ -1403,7 +1403,7 @@ end
 local function restoreBaseEvent(step)
     if not eventInfo(step) then return fail('Unknown event.') end
 
-    local result, err = QB.callback.trigger('qbdrugs:creator:event:restore', step)
+    local result, err = Kora.callback.trigger('qbdrugs:creator:event:restore', step)
     if not result then return fail(err or 'Failed to restore the event.') end
 
     applyCustoms(result)
@@ -1468,7 +1468,7 @@ local function onAction(actionId, context)
     return refresh()
 end
 
-QB.nui.registerApp({
+Kora.nui.registerApp({
     id = APP_ID,
     title = 'Drug Creator',
     icon = 'Leaf',
@@ -1503,19 +1503,19 @@ local function runPendingTool()
 
     if tool.kind == 'entrance' then
         placeUntilCancelled(
-            function() return QB.raycast.getCoords({}) end,
+            function() return Kora.raycast.getCoords({}) end,
             function(c) return { enter = { x = c.x, y = c.y, z = c.z }, exit = tool.exit, gang = tool.gang } end,
             function(place) return persistEvent({ locations = appended(selectedEvent.locations, place) }) end,
             'Drug Creator', true)
     elseif tool.kind == 'point' then
         placeUntilCancelled(
-            function() return QB.raycast.getCoords(tool.object and { type = 'object', object = tool.object } or {}) end,
+            function() return Kora.raycast.getCoords(tool.object and { type = 'object', object = tool.object } or {}) end,
             function(c, aimed) return { coords = { x = c.x, y = c.y, z = c.z, w = c.w or aimed.heading }, object = tool.object, gang = tool.gang } end,
             function(place) return persistEvent({ locations = appended(selectedEvent.locations, place) }) end,
             'Drug Creator')
     elseif tool.kind == 'spot' then
         placeUntilCancelled(
-            function() return QB.raycast.getCoords({ type = 'object', object = selected.data.model }) end,
+            function() return Kora.raycast.getCoords({ type = 'object', object = selected.data.model }) end,
             function(c) return { coords = { x = c.x, y = c.y, z = c.z } } end,
             function(place) return persist({ locations = appended(selected.locations, place) }) end,
             'Plant Creator')
@@ -1524,7 +1524,7 @@ end
 
 -- Fills every page from the one server callback. Returns false, err when it fails.
 local function loadCreator()
-    local data, err = QB.callback.trigger('qbdrugs:creator:open')
+    local data, err = Kora.callback.trigger('qbdrugs:creator:open')
     if not data then return false, err end
 
     plantList, plantsStale = data.plants or {}, false
@@ -1538,7 +1538,7 @@ end
 
 local function open()
     -- The window opens at once with a loading page; the data replaces it when it arrives.
-    QB.nui.updateApp(APP_ID, { navigation = { {
+    Kora.nui.updateApp(APP_ID, { navigation = { {
         id = currentView, label = 'Drug Creator', icon = 'Leaf',
         content = { title = 'Drug Creator', blocks = { { type = 'empty', title = 'Loading Drug Creator…', icon = 'Leaf' } } },
     } } })
@@ -1546,18 +1546,18 @@ local function open()
     CreateThread(function()
         local ok, err = loadCreator()
         if not ok then
-            QB.nui.closeApp(APP_ID)
+            Kora.nui.closeApp(APP_ID)
             toast('Plant Creator', err or 'Admin permission required.')
             return
         end
-        QB.nui.updateApp(APP_ID, { navigation = buildNavigation() })
+        Kora.nui.updateApp(APP_ID, { navigation = buildNavigation() })
     end)
 
     while true do
-        QB.nui.openApp(APP_ID, { viewId = currentView })
+        Kora.nui.openApp(APP_ID, { viewId = currentView })
         if not pendingTool then break end
         runPendingTool()
-        QB.nui.updateApp(APP_ID, { navigation = buildNavigation() })
+        Kora.nui.updateApp(APP_ID, { navigation = buildNavigation() })
     end
 end
 

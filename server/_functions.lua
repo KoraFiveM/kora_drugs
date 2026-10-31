@@ -57,7 +57,7 @@ function isNear(src, coords, radius)
     if not coords then return false end
     local x, y, z = tonumber(coords.x), tonumber(coords.y), tonumber(coords.z)
     if not (x and y and z) then return false end
-    return QB.distance.player(src, vec3(x, y, z), radius or 5.0)
+    return Kora.distance.player(src, vec3(x, y, z), radius or 5.0)
 end
 
 local cooldowns = {}
@@ -68,9 +68,9 @@ function onCooldown(src, key)
     if active then
         blocked[key] = blocked[key] or {}
         blocked[key][src] = (blocked[key][src] or 0) + 1
-        QB.print.warn(('[qbdrugs] player %s hit the "%s" cooldown %d time(s)'):format(src, key, blocked[key][src]))
+        Kora.print.warn(('[qbdrugs] player %s hit the "%s" cooldown %d time(s)'):format(src, key, blocked[key][src]))
         if blocked[key][src] == 5 then
-            QB.print.error(('[qbdrugs] player %s hit the "%s" cooldown 5 times, consider taking action'):format(src, key))
+            Kora.print.error(('[qbdrugs] player %s hit the "%s" cooldown 5 times, consider taking action'):format(src, key))
             DropPlayer(src, 'You have hit the "' .. key .. '" cooldown 5 times.')
         end
     end
@@ -119,7 +119,7 @@ function CachedCreatorData(build)
 end
 
 function dbRow(step)
-    local rows = QB.sql.query('SELECT * FROM `qbdrugs` WHERE `step` = ? LIMIT 1', { step })
+    local rows = Kora.sql.query('SELECT * FROM `qbdrugs` WHERE `step` = ? LIMIT 1', { step })
     return rows and rows[1] or nil
 end
 
@@ -128,12 +128,12 @@ function dbSave(step, data, locations)
     InvalidateCreatorCache()
     local function done(...) InvalidateCreatorCache() return ... end
     if dbRow(step) then
-        return done(QB.sql.update(
+        return done(Kora.sql.update(
             'UPDATE `qbdrugs` SET `data` = ?, `locations` = ? WHERE `step` = ?',
             { json.encode(data), json.encode(locations), step }
         ))
     end
-    return done(QB.sql.update(
+    return done(Kora.sql.update(
         'INSERT INTO `qbdrugs` (`step`, `data`, `locations`) VALUES (?, ?, ?)',
         { step, json.encode(data), json.encode(locations) }
     ))
@@ -141,7 +141,7 @@ end
 
 function dbDelete(step)
     InvalidateCreatorCache()
-    local ok, err = QB.sql.update('DELETE FROM `qbdrugs` WHERE `step` = ?', { step })
+    local ok, err = Kora.sql.update('DELETE FROM `qbdrugs` WHERE `step` = ?', { step })
     InvalidateCreatorCache()
     return ok, err
 end
@@ -152,7 +152,7 @@ function hasItems(src, itemList)
     for _, item in pairs(itemList) do
         if not exports['qb-inventory']:HasItem(src, item.item, item.amount) then
             hasAll = false
-            QB.notify.send(src, { title = 'qb-drugs', message = QB.lang('Functions.no_items', item.amount, item.item), type = 'error' })
+            Kora.notify.send(src, { title = 'qb-drugs', message = Kora.lang('Functions.no_items', item.amount, item.item), type = 'error' })
         end
     end
     return hasAll
@@ -178,7 +178,7 @@ function RegisterLabTeleport(name, drug, step)
         return Drugs[drug] and Drugs[drug][step]
     end
 
-    QB.callback.register(('qbdrugs:%s:Tele'):format(name), function(source, key)
+    Kora.callback.register(('qbdrugs:%s:Tele'):format(name), function(source, key)
         local location = lab() and type(key) == 'number' and lab().locations[key]
         if not (location and isNear(source, location.enter)) then return false end
 
@@ -188,7 +188,7 @@ function RegisterLabTeleport(name, drug, step)
         return true
     end)
 
-    QB.callback.register(('qbdrugs:%s:TeleOut'):format(name), function(source)
+    Kora.callback.register(('qbdrugs:%s:TeleOut'):format(name), function(source)
         local first = lab() and lab().locations[1]
         local session = inside[source]
 
@@ -207,9 +207,9 @@ function RegisterLabTeleport(name, drug, step)
 end
 
 -- Create storage before the other server scripts read it; keep the example rows opt-in.
-local sqlReady, sqlError = QB.sql.ready()
+local sqlReady, sqlError = Kora.sql.ready()
 assert(sqlReady, sqlError)
 local installSql = assert(LoadResourceFile(GetCurrentResourceName(), 'sql/qbdrugs.sql'), 'qbdrugs: missing sql/qbdrugs.sql')
 local schemaSql = assert(installSql:match('^(CREATE TABLE.-;)'), 'qbdrugs: missing table definition')
-local created, createError = QB.sql.query(schemaSql)
+local created, createError = Kora.sql.query(schemaSql)
 assert(created ~= nil, createError or 'qbdrugs: could not create storage')

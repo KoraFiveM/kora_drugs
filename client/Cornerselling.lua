@@ -8,7 +8,7 @@ local function handShake(initiatorPed, receiverPed, onFinished)
     if not DoesEntityExist(initiatorPed) or not DoesEntityExist(receiverPed) then
         return
     end
-    QB.stream.loadAnimDict("mp_ped_interaction")
+    Kora.stream.loadAnimDict("mp_ped_interaction")
     ClearPedTasks(initiatorPed)
     ClearPedTasks(receiverPed)
 
@@ -23,7 +23,7 @@ end
 local OFFER_APP_ID = 'qbdrugs:cornerOffer'
 local offerAccepted = false
 
-QB.nui.registerApp({
+Kora.nui.registerApp({
     id = OFFER_APP_ID,
     title = 'Offer',
     icon = 'DollarSign',
@@ -49,7 +49,7 @@ QB.nui.registerApp({
 local function openOffer(deal)
     offerAccepted = false
     local title = 'Corner Selling Offer'
-    QB.nui.updateApp(OFFER_APP_ID, {
+    Kora.nui.updateApp(OFFER_APP_ID, {
         navigation = {
             {
                 id = 'offer', label = title, icon = 'DollarSign',
@@ -80,7 +80,7 @@ local function openOffer(deal)
             },
         },
     })
-    QB.nui.openApp(OFFER_APP_ID, { viewId = 'offer' })
+    Kora.nui.openApp(OFFER_APP_ID, { viewId = 'offer' })
     return offerAccepted
 end
 
@@ -93,7 +93,7 @@ local function passChecks(id)
 end
 
 local function endBuyer()
-    if cornerPrompt then QB.textui.hide(cornerPrompt); cornerPrompt = nil end
+    if cornerPrompt then Kora.textui.hide(cornerPrompt); cornerPrompt = nil end
     if buyer then
         ClearPedTasks(buyer)
         SetEntityAsMissionEntity(buyer, false, true)
@@ -104,7 +104,7 @@ local function endBuyer()
 end
 
 local function canSell()
-    drugDeal = QB.callback.trigger('qbdrugs:getSellableItem')
+    drugDeal = Kora.callback.trigger('qbdrugs:getSellableItem')
     return drugDeal
 end
 local function findBuyer()
@@ -112,10 +112,10 @@ local function findBuyer()
         canSell()
     end
     if not drugDeal then isSelling = false drugDeal = nil return end
-    cornerPrompt = QB.textui.show('Looking for a buyer...')
+    cornerPrompt = Kora.textui.show('Looking for a buyer...')
     repeat
         Wait(1000)
-        local ped = QB.closest.ped(GetEntityCoords(PlayerPedId()), 10.0)
+        local ped = Kora.closest.ped(GetEntityCoords(PlayerPedId()), 10.0)
         if ped.id then
             if passChecks(ped.id) then
                 buyer = ped.id
@@ -126,12 +126,12 @@ local function findBuyer()
             end
         end
     until buyer ~= nil or not isSelling
-    QB.textui.update(cornerPrompt, 'Buyer found!')
+    Kora.textui.update(cornerPrompt, 'Buyer found!')
     if not isSelling then endBuyer() return end
     repeat
         Wait(1000)
         TaskGoToCoordAnyMeans(buyer, GetEntityCoords(PlayerPedId()), 1.0, 0, 0, 0, 0)
-    until QB.distance.entity(buyer, 2.0) or not isSelling
+    until Kora.distance.entity(buyer, 2.0) or not isSelling
     if not isSelling then endBuyer() return end
     TaskTurnPedToFaceEntity(buyer, PlayerPedId(), -1)
     exports.kora_target:addEntity(buyer, {
@@ -167,6 +167,6 @@ RegisterCommand('cornerSell', function(source)
         findBuyer()
     else
         endBuyer()
-        if cornerPrompt then QB.textui.hide(cornerPrompt); cornerPrompt = nil end
+        if cornerPrompt then Kora.textui.hide(cornerPrompt); cornerPrompt = nil end
     end
 end)

@@ -64,7 +64,7 @@ local function getSellableItem(src)
         end
     end
     if not item then
-        QB.notify.send(src, {title = 'qb-drugs', message = 'You have no sellable items.', type = 'error'})
+        Kora.notify.send(src, {title = 'qb-drugs', message = 'You have no sellable items.', type = 'error'})
         return false
     end
 
@@ -87,14 +87,14 @@ local function getSellableItem(src)
     return sellData
 end
 
-QB.callback.register('qbdrugs:getSellableItem', function(source)
+Kora.callback.register('qbdrugs:getSellableItem', function(source)
     hasSale[source] = hasSale[source] or {}
     return getSellableItem(source)
 end)
 
 RegisterNetEvent('qbdrugs:sellToBuyer', function(netId)
     local src = source
-    local buyer = QB.world.resolveNetworkEntity(src, netId, {
+    local buyer = Kora.world.resolveNetworkEntity(src, netId, {
         entityType = 'ped',
         maxDistance = 5.0,
     })

@@ -4,7 +4,7 @@ local function removeDelivery()
     if deliveryZone then exports.kora_target:removeZone(deliveryZone); deliveryZone = nil end
 end
 local function message(text, kind)
-    QB.notify.send({ title = 'Dealer', message = text, type = kind or 'info' })
+    Kora.notify.send({ title = 'Dealer', message = text, type = kind or 'info' })
 end
 local function finished(result)
     removeDelivery()
@@ -15,9 +15,9 @@ local function deliver()
     if busy or not active then return end
     busy = true
     local ok, err = pcall(function()
-        if not QB.progressbar.start({ label = 'Delivering package', duration = 3500, canCancel = true,
+        if not Kora.progressbar.start({ label = 'Delivering package', duration = 3500, canCancel = true,
             disable = { move = true, car = true, combat = true } }) then return end
-        local result, reason = QB.callback.trigger('qbdrugs:server:finishDelivery', { id = active.id })
+        local result, reason = Kora.callback.trigger('qbdrugs:server:finishDelivery', { id = active.id })
         if result then finished(result) else message(reason or 'Delivery could not be completed', 'error') end
     end)
     busy = false
@@ -36,7 +36,7 @@ end
 local function request(name)
     if busy then return end
     busy = true
-    local ok, data, reason = pcall(QB.callback.trigger, 'qbdrugs:server:beginDelivery', name)
+    local ok, data, reason = pcall(Kora.callback.trigger, 'qbdrugs:server:beginDelivery', name)
     busy = false
     if ok and data then route(data) else message(reason or 'Delivery unavailable', 'error') end
 end
@@ -59,7 +59,7 @@ local function refresh(dealers)
 end
 local function loaded()
     core.Functions.TriggerCallback('qb-drugs:server:RequestConfig', refresh)
-    local result = QB.callback.trigger('qbdrugs:server:resumeDelivery')
+    local result = Kora.callback.trigger('qbdrugs:server:resumeDelivery')
     if result then route(result) end
 end
 RegisterNetEvent('qb-drugs:client:RefreshDealers', refresh)
@@ -67,7 +67,7 @@ RegisterNetEvent('qbdrugs:client:delivery', function(data) if source == 65535 th
 RegisterNetEvent('qbdrugs:client:deliveryFinished', function(data) if source == 65535 then finished(data) end end)
 RegisterNetEvent('qb-drugs:client:setLocation', function()
     -- Mail action arguments are presentation only; recover the server's own active route.
-    local result = QB.callback.trigger('qbdrugs:server:resumeDelivery')
+    local result = Kora.callback.trigger('qbdrugs:server:resumeDelivery')
     if result then route(result) end
 end)
 RegisterNetEvent('QBCore:Client:OnPlayerLoaded', loaded)

@@ -1,6 +1,6 @@
 -- Run from qbdrugs: lua test/storage.lua
 local queries, ready, schema = {}, true, true
-QB = { sql = {
+Kora = { sql = {
     ready = function()
         assert(type(RegisterLabTeleport) == 'function', 'helpers must exist before SQL can yield')
         return ready, 'database unavailable'
@@ -37,7 +37,7 @@ assert(not ok and err:find('missing sql/qbdrugs.sql', 1, true))
 assert(#queries == 1)
 qbdrugsServerFunctionsLoaded = nil
 schema = true
-QB.sql.query = function() return nil, 'CREATE permission denied' end
+Kora.sql.query = function() return nil, 'CREATE permission denied' end
 ok, err = pcall(dofile, 'server/_functions.lua')
 assert(not ok and err:find('CREATE permission denied', 1, true))
 print('qbdrugs storage: readiness, schema-only creation, duplicate load and failure checks passed')

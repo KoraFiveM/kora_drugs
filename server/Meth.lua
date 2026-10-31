@@ -40,7 +40,7 @@ local function elapsedSince(session, stampField, gap)
 	return stamp ~= nil and (os.time() - stamp) >= gap
 end
 
-QB.callback.register('qb-drugs:server:startCook', function(source)
+Kora.callback.register('qb-drugs:server:startCook', function(source)
 	if cooking[source] then
 		return false, "Cooking already started for this source"
 	end
@@ -62,7 +62,7 @@ QB.callback.register('qb-drugs:server:startCook', function(source)
 	return true
 end)
 
-QB.callback.register('qb-drugs:server:runDials', function(source)
+Kora.callback.register('qb-drugs:server:runDials', function(source)
 	local session = cooking[source]
 	if not session then
 		return false, "No active cooking session for this source"
@@ -85,7 +85,7 @@ QB.callback.register('qb-drugs:server:runDials', function(source)
 	return true
 end)
 
-QB.callback.register('qb-drugs:server:smash', function(source)
+Kora.callback.register('qb-drugs:server:smash', function(source)
 	local session = cooking[source]
 	if not session then
 		return false, "No active cooking session for this source"

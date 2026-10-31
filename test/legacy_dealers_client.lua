@@ -16,7 +16,7 @@ exports={['qb-core']={GetCoreObject=function() return core end},kora_target={
     addBoxZone=function(_,data) lastId=lastId+1;zones[lastId]=data;return lastId end,
     removeZone=function(_,id) zones[id]=nil end,
 }}
-QB={notify={send=function(data) messages[#messages+1]=data end},progressbar={start=function() if progress=='error' then error('progress failed') end; return progress end},
+Kora={notify={send=function(data) messages[#messages+1]=data end},progressbar={start=function() if progress=='error' then error('progress failed') end; return progress end},
     callback={trigger=function(name,data) calls[#calls+1]={name,data};return name:find('finish',1,true) and finishResult or activeResult end}}
 dofile('client/legacy_dealers.lua')
 local checks=0

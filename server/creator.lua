@@ -33,7 +33,7 @@ end
 
 -- Every creator callback is admin only. This is the one place that is checked.
 local function adminCallback(name, handler)
-    QB.callback.register(name, function(src, ...)
+    Kora.callback.register(name, function(src, ...)
         if not isAdmin(src) then return fail('Admin permission required.') end
         return handler(src, ...)
     end)
@@ -282,7 +282,7 @@ end
 
 local function plantList()
     local list = {}
-    for _, row in ipairs(QB.sql.query('SELECT * FROM `qbdrugs`', {}) or {}) do
+    for _, row in ipairs(Kora.sql.query('SELECT * FROM `qbdrugs`', {}) or {}) do
         if row.step:match('^%w+:pick$') then
             local record = toRecord(row)
             list[#list + 1] = {
@@ -988,7 +988,7 @@ local function customPayload()
         drugs[#drugs + 1] = byName[name]
     end
 
-    for _, row in ipairs(QB.sql.query('SELECT `step`, `data` FROM `qbdrugs`') or {}) do
+    for _, row in ipairs(Kora.sql.query('SELECT `step`, `data` FROM `qbdrugs`') or {}) do
         local drug, name = splitCustomStep(row.step)
         if drug and byName[drug] and decodeJson(row.data, {}).custom == true then
             table.insert(byName[drug].events, { step = row.step, name = name })
@@ -1107,14 +1107,14 @@ local function seedEvent(step, kind)
         ok, err = dbSave(step, kind.defaults(), initial())
     elseif kind.fillLocations and not decodeJson(row.locations, {}).coords then
         what = 'filled the position of'
-        ok, err = QB.sql.update('UPDATE `qbdrugs` SET `locations` = ? WHERE `step` = ?', { json.encode(initial()), step })
+        ok, err = Kora.sql.update('UPDATE `qbdrugs` SET `locations` = ? WHERE `step` = ?', { json.encode(initial()), step })
         InvalidateCreatorCache()
     else
         return
     end
 
     if not ok then error(err or 'the write failed') end
-    QB.print.warn(('[qbdrugs] %s %s'):format(what, step))
+    Kora.print.warn(('[qbdrugs] %s %s'):format(what, step))
     ReloadEvents(step)
 end
 
@@ -1170,7 +1170,7 @@ CreateThread(function()
     for step, kind in pairs(eventTypes) do
         if not removed[step] then
             local ok, err = pcall(seedEvent, step, kind)
-            if not ok then QB.print.warn(('[qbdrugs] could not set up %s: %s'):format(step, tostring(err))) end
+            if not ok then Kora.print.warn(('[qbdrugs] could not set up %s: %s'):format(step, tostring(err))) end
         end
     end
 end)
@@ -1204,8 +1204,8 @@ end)
 
 RegisterCommand('drugCreator', function(source)
     if not isAdmin(source) then
-        QB.print.warn(('[qbdrugs] player %s was denied /drugCreator: they do not have the "%s" ace'):format(source, 'command'))
-        QB.notify.send(source, { title = 'Drug Creator', message = 'Admin permission required.', type = 'error' })
+        Kora.print.warn(('[qbdrugs] player %s was denied /drugCreator: they do not have the "%s" ace'):format(source, 'command'))
+        Kora.notify.send(source, { title = 'Drug Creator', message = 'Admin permission required.', type = 'error' })
         return
     end
     TriggerClientEvent('qbdrugs:creator:open', source)

@@ -16,7 +16,7 @@ end
 setStage()
 local function cutCoke(coords, offset, rotation)
     local animDict, animName = "anim@amb@business@coc@coc_unpack_cut_left@", "coke_cut_v5_coccutter"
-    QB.stream.loadAnimDict(animDict)
+    Kora.stream.loadAnimDict(animDict)
 
     local animDuration = GetAnimDuration(animDict, animName) * 1000
     local ped = PlayerPedId()
@@ -38,7 +38,7 @@ local function cutCoke(coords, offset, rotation)
         NetworkAddPedToSynchronisedScene(ped, scene, animDict, animName, 1.5, -4.0, 1, 16, 1148846080, 0)
         for j = 1, #scenes[i] do
             local s = scenes[i][j]
-            QB.stream.loadModel(s.hash)
+            Kora.stream.loadModel(s.hash)
             local obj = CreateObjectNoOffset(
                 s.hash,
                 coords.x, coords.y, coords.z,
@@ -69,7 +69,7 @@ end
 local function bagCoke(coords, offset, rotation)
     local ver = ""
 	local animDict, animName = "anim@amb@business@meth@meth_smash_weight_check@", "break_weigh_"..ver.."char01"
-	QB.stream.loadAnimDict(animDict)
+	Kora.stream.loadAnimDict(animDict)
 	local animDuration = GetAnimDuration(animDict, animName) * 1000
 	local ped = PlayerPedId()
 	local scenePos, sceneRot = vector3(coords.x + offset.x, coords.y + offset.y,coords.z + offset.z +0.03), rotation
@@ -99,7 +99,7 @@ local function bagCoke(coords, offset, rotation)
     	NetworkAddPedToSynchronisedScene(ped, scene, animDict, animName, 1.5, -4.0, 1, 16, 1148846080, 0)
     	for j=1, #scenes[i], 1 do
     		local s = scenes[i][j]
-            QB.stream.loadModel(s.hash)
+            Kora.stream.loadModel(s.hash)
     		local obj = CreateObjectNoOffset(s.hash, coords.x, coords.y, coords.z, true, true, true)
     		SetModelAsNoLongerNeeded(s.hash)
     		entitiesList[#entitiesList+1] = obj

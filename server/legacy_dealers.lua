@@ -3,7 +3,7 @@ local core = exports['qb-core']:GetCoreObject()
 local config = LegacyDealerConfig
 local dealers, locks, ready = {}, {}, false
 local function query(sql, args)
-    local result, err = QB.sql.query(sql, args or {})
+    local result, err = Kora.sql.query(sql, args or {})
     assert(result ~= nil, err or 'dealer database operation failed')
     return result
 end
@@ -221,16 +221,16 @@ local function settle(src, supplied)
     end)
 end
 local function notify(src, message)
-    QB.notify.send(src, { title = 'Dealer', message = message, type = 'error' })
+    Kora.notify.send(src, { title = 'Dealer', message = message, type = 'error' })
 end
-QB.callback.register('qbdrugs:server:beginDelivery', begin, { rateLimit = { max = 4, window = 10000 } })
-QB.callback.register('qbdrugs:server:finishDelivery', settle, { rateLimit = { max = 4, window = 10000 } })
-QB.callback.register('qbdrugs:server:resumeDelivery', function(src)
+Kora.callback.register('qbdrugs:server:beginDelivery', begin, { rateLimit = { max = 4, window = 10000 } })
+Kora.callback.register('qbdrugs:server:finishDelivery', settle, { rateLimit = { max = 4, window = 10000 } })
+Kora.callback.register('qbdrugs:server:resumeDelivery', function(src)
     return locked(src, function(cid) local row = currentSession(cid); return row and issue(src, row) end)
 end, { rateLimit = { max = 4, window = 10000 } })
 core.Functions.CreateCallback('qb-drugs:server:RequestConfig', function(_, cb) cb(roster()) end)
 exports('GetDealers', roster)
-QB.compat.provideExport('qb-drugs', 'GetDealers', roster)
+Kora.compat.provideExport('qb-drugs', 'GetDealers', roster)
 RegisterNetEvent('qb-drugs:server:dealerShop', function(name)
     local src = source
     if not ready or not player(src) or not available(src, name) then return end

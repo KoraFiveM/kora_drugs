@@ -50,7 +50,7 @@ local function toStation(location)
 end
 
 local function notify(message, type)
-	QB.notify.send({ title = 'qb-drugs', message = message, type = type })
+	Kora.notify.send({ title = 'qb-drugs', message = message, type = type })
 end
 
 local function atStage(required)
@@ -84,7 +84,7 @@ local function resetCook()
 end
 
 local function spawnProp(hash, coords)
-	QB.stream.loadModel(hash)
+	Kora.stream.loadModel(hash)
 	local obj = CreateObjectNoOffset(hash, coords, true, true, true)
 	SetModelAsNoLongerNeeded(hash)
 	return obj
@@ -118,7 +118,7 @@ end
 local function runScene(opts)
 	local ped = PlayerPedId()
 
-	QB.stream.loadAnimDict(opts.animDict)
+	Kora.stream.loadAnimDict(opts.animDict)
 	SetEntityCoords(ped, opts.coords)
 	Wait(1)
 	FreezeEntityPosition(ped, true)
@@ -151,7 +151,7 @@ end
 -- Target text comes from the saved Meth rows (creator); the locale is the fallback.
 local function targetText(entry, labelKey, iconKey, locale)
 	local data = entry and entry.data or {}
-	return data[labelKey] or QB.lang(locale .. '.target'), data[iconKey] or QB.lang(locale .. '.icon')
+	return data[labelKey] or Kora.lang(locale .. '.target'), data[iconKey] or Kora.lang(locale .. '.icon')
 end
 
 -- One zone per station, rebuilt only when that station's row changes.
@@ -219,7 +219,7 @@ local function loadParticle(dict)
 end
 
 local function heatingMeth(coords)
-	QB.stream.loadModel('hei_prop_heist_thermite')
+	Kora.stream.loadModel('hei_prop_heist_thermite')
 	loadParticle('scr_ornate_heist')
 	local thermite = CreateObject('hei_prop_heist_thermite', coords.x - 0.5, coords.y - 0.5, coords.z -0.5, true, false, false)
 	SetModelAsNoLongerNeeded(`hei_prop_heist_thermite`)
@@ -259,7 +259,7 @@ local function bagMeth(coords, offset, rotation)
 	local animName = "break_weigh_char01"
 	local ped = PlayerPedId()
 
-	QB.stream.loadAnimDict(smashDict)
+	Kora.stream.loadAnimDict(smashDict)
 	SetEntityCoords(ped, coords)
 
 	local duration = GetAnimDuration(smashDict, animName) * 1000
@@ -290,13 +290,13 @@ end
 -- ----------------------------------------------------------------------------
 
 local function startCook(coords, offset, rotation)
-	if not QB.callback.trigger('qb-drugs:server:startCook') then return false end
+	if not Kora.callback.trigger('qb-drugs:server:startCook') then return false end
 	methCooking(coords, offset, rotation)
 	return true
 end
 
 local function runDials(coords)
-	local result = QB.minigames.play("fishing", { speed = 'medium' })
+	local result = Kora.minigames.play("fishing", { speed = 'medium' })
 	if not result.success then
 		local heat = stations.heat
 		if heat and heat.explosion then
@@ -307,7 +307,7 @@ local function runDials(coords)
 		return false
 	end
 
-	if not QB.callback.trigger('qb-drugs:server:runDials') then
+	if not Kora.callback.trigger('qb-drugs:server:runDials') then
 		notify('Failed to run dials', 'error')
 		resetCook()
 		return false
@@ -323,7 +323,7 @@ local function pickUpTray()
 	local ped = PlayerPedId()
 	local pos = GetEntityCoords(ped, true)
 
-	QB.stream.loadAnimDict(carryDict)
+	Kora.stream.loadAnimDict(carryDict)
 	TaskPlayAnim(ped, carryDict, 'idle', 5.0, -1, -1, 50, 0, false, false, false)
 
 	trayObject = spawnProp('bkr_prop_meth_tray_02a', pos)
@@ -356,7 +356,7 @@ local function attachBucketTarget(bucket)
 end
 
 local function smash(coords, offset, rotation)
-	if not QB.callback.trigger('qb-drugs:server:smash') then
+	if not Kora.callback.trigger('qb-drugs:server:smash') then
 		notify('You need to heat the meth first', 'error')
 		return false
 	end

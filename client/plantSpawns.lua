@@ -17,8 +17,8 @@ end
 local function pickDrugs(name, id)
     Busy = true
     local tbl = pickProgress(name)
-    if QB.progressbar.start({
-        label = (Settings[name] and Settings[name].progressLabel) or QB.lang(name .. '.pick.progress') or "Picking",
+    if Kora.progressbar.start({
+        label = (Settings[name] and Settings[name].progressLabel) or Kora.lang(name .. '.pick.progress') or "Picking",
         duration = tbl.time,
         useWhileDead = false,
         canCancel = true,
@@ -33,11 +33,11 @@ end
 local function spawnProp(name, id, spot)
     local settings = Settings[name]
     if not settings or not settings.model then return end
-    local obj = QB.entities.create(settings.model, spot.coords, { freeze = true, invincible = true })
+    local obj = Kora.entities.create(settings.model, spot.coords, { freeze = true, invincible = true })
     exports.kora_target:addEntity(obj, {
         {
-            icon = settings.icon or QB.lang(name .. '.pick.icon') or 'coca-leaf',
-            label = settings.targetLabel or QB.lang(name .. '.pick.target') or 'Pick Drugs',
+            icon = settings.icon or Kora.lang(name .. '.pick.icon') or 'coca-leaf',
+            label = settings.targetLabel or Kora.lang(name .. '.pick.target') or 'Pick Drugs',
             onSelect = function()
                 pickDrugs(name, id)
             end,
@@ -87,8 +87,8 @@ end
 
 local function initType(name)
     registerType(name)
-    local settings = QB.state.awaitGlobal(name .. 'Data', 30000, 100)
-    local spots = QB.state.awaitGlobal(name, 30000, 100)
+    local settings = Kora.state.awaitGlobal(name .. 'Data', 30000, 100)
+    local spots = Kora.state.awaitGlobal(name, 30000, 100)
     if not settings or not spots then
         print(('[qbdrugs] timed out waiting for GlobalState.%s'):format(name))
         return
@@ -109,7 +109,7 @@ RegisterNetEvent('qb_drugs:client:plantsRemove', function(name)
 end)
 
 CreateThread(function()
-    local types = QB.state.awaitGlobal('drugPlantTypes', 30000, 100)
+    local types = Kora.state.awaitGlobal('drugPlantTypes', 30000, 100)
     if not types then
         print('[qbdrugs] timed out waiting for GlobalState.drugPlantTypes')
         return
