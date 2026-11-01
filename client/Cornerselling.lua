@@ -4,6 +4,7 @@ local buyer = nil
 local drugDeal = nil
 local isOfferOpen = false
 local cornerPrompt
+
 local function handShake(initiatorPed, receiverPed, onFinished)
     if not DoesEntityExist(initiatorPed) or not DoesEntityExist(receiverPed) then
         return
@@ -85,11 +86,7 @@ local function openOffer(deal)
 end
 
 local function passChecks(id)
-    local isPedHuman = IsPedHuman(id)
-    local isPedPlayer = IsPedAPlayer(id)
-    local isPedInVehicle = IsPedInAnyVehicle(id, false)
-    local new = not previous[id]
-    return isPedHuman == 1 and not isPedPlayer and not isPedInVehicle and new
+    return IsPedHuman(id) == 1 and not IsPedAPlayer(id) and not IsPedInAnyVehicle(id, false) and not previous[id]
 end
 
 local function endBuyer()
@@ -103,13 +100,9 @@ local function endBuyer()
     end
 end
 
-local function canSell()
-    drugDeal = Kora.callback.trigger('qbdrugs:getSellableItem')
-    return drugDeal
-end
 local function findBuyer()
     if not drugDeal then
-        canSell()
+        drugDeal = Kora.callback.trigger('qbdrugs:getSellableItem')
     end
     if not drugDeal then isSelling = false drugDeal = nil return end
     cornerPrompt = Kora.textui.show('Looking for a buyer...')
@@ -167,6 +160,5 @@ RegisterCommand('cornerSell', function(source)
         findBuyer()
     else
         endBuyer()
-        if cornerPrompt then Kora.textui.hide(cornerPrompt); cornerPrompt = nil end
     end
 end)

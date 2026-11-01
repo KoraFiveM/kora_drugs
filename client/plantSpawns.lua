@@ -1,8 +1,7 @@
-
 local Busy = false
-local Settings = {}   
-local Spots = {}      
-local Objects = {}    
+local Settings = {}
+local Spots = {}
+local Objects = {}
 local registered = {}
 
 local function pickProgress(name)

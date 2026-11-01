@@ -42,8 +42,8 @@ end
 local function allItems()
     local ok, items = pcall(function() return exports['qb-core']:GetShared('Items') end)
     if ok and type(items) == 'table' then return items end
-    ok, items = pcall(function() return exports.kora_core:getShared('items') end)
-    return ok and type(items) == 'table' and items or {}
+    items = exports.kora_core:getShared('items')
+    return type(items) == 'table' and items or {}
 end
 
 local function itemExists(item)
@@ -825,7 +825,7 @@ end
 local function cornerPayload()
     local event = getEvent(cornerStep)
     local shared, items = allItems(), {}
-    for name in pairs(event.data.pricing or {}) do
+    for name in pairs(event.data.pricing) do
         items[name] = itemEntry(shared, name)
     end
     return { step = cornerStep, data = event.data, items = items }
@@ -834,7 +834,7 @@ end
 adminCallback('qbdrugs:creator:corner:get', cornerPayload)
 
 adminCallback('qbdrugs:creator:corner:search', function(_, query)
-    local priced = getEvent(cornerStep).data.pricing or {}
+    local priced = getEvent(cornerStep).data.pricing
     return searchItems(query, function(name) return priced[name] ~= nil end)
 end)
 
@@ -844,7 +844,7 @@ local function effectiveGive(saved, id)
 end
 
 local function recipesPayload()
-    local saved = getEvent(recipesStep).data.recipes or {}
+    local saved = getEvent(recipesStep).data.recipes
     local shared, list, items = allItems(), {}, {}
 
     local function track(name)
@@ -870,8 +870,6 @@ end
 -- Runs change(savedRecipes), which returns an error message or nil, then saves and returns the page.
 local function updateRecipes(change)
     local data = getEvent(recipesStep).data
-    data.recipes = data.recipes or {}
-
     local err = change(data.recipes)
     if err then return fail(err) end
 
@@ -880,13 +878,13 @@ local function updateRecipes(change)
     return recipesPayload()
 end
 
-adminCallback('qbdrugs:creator:recipes:get', function() return recipesPayload() end)
+adminCallback('qbdrugs:creator:recipes:get', recipesPayload)
 
 adminCallback('qbdrugs:creator:recipes:search', function(_, query, id)
     if not recipeInfo[id] then return fail('Unknown recipe.') end
 
     local inRecipe = {}
-    for _, entry in ipairs(effectiveGive(getEvent(recipesStep).data.recipes or {}, id)) do
+    for _, entry in ipairs(effectiveGive(getEvent(recipesStep).data.recipes, id)) do
         inRecipe[entry.item] = true
     end
     return searchItems(query, function(name) return inRecipe[name] == true end)
@@ -994,7 +992,7 @@ local function takenDrugName(name)
     return false
 end
 
-adminCallback('qbdrugs:creator:custom:get', function() return customPayload() end)
+adminCallback('qbdrugs:creator:custom:get', customPayload)
 
 adminCallback('qbdrugs:creator:custom:drug:create', function(_, name)
     name = trim(name, 25)
