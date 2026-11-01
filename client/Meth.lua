@@ -168,7 +168,6 @@ local function stepZone(name, optionsFn)
 	end)
 end
 
-
 local pourProps = {
 	{ hash = "bkr_prop_meth_sacid",   animName = "chemical_pour_short_sacid" },
 	{ hash = "bkr_prop_meth_ammonia", animName = "chemical_pour_short_ammonia" },
@@ -286,7 +285,6 @@ local function bagMeth(coords, offset, rotation)
 	FreezeEntityPosition(ped, false)
 end
 
-
 local function startCook(coords, offset, rotation)
 	if not Kora.callback.trigger('qb-drugs:server:startCook') then return false end
 	methCooking(coords, offset, rotation)
@@ -375,8 +373,6 @@ local function smash(coords, offset, rotation)
 	return true
 end
 
-
-
 -- Entrances (many) and the exit (one) come from the 'Meth:tele' row; see LabTeleport.
 OnDrugs('Meth', 'tele', LabTeleport('meth', 'meth'))
 
@@ -443,7 +439,6 @@ end)
 OnDrugs('Meth', 'bag', function(entry)
 	stations.bag = toStation(entry and entry.locations)
 end)
-
 
 AddEventHandler('onResourceStop', function(resource)
 	if resource ~= GetCurrentResourceName() then return end

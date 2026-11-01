@@ -152,7 +152,6 @@ local function modelExists(model)
     return type(model) == 'string' and model ~= '' and IsModelInCdimage(GetHashKey(model))
 end
 
-
 -- The plants page list. Fetched when the creator opens, and again after a plant is saved, created or deleted.
 local plantList, plantsStale = {}, false
 
@@ -160,9 +159,8 @@ local function plantsView()
     if plantsStale then
         plantList, plantsStale = Kora.callback.trigger('qbdrugs:creator:list') or plantList, false
     end
-    local list = plantList
     local items = {}
-    for _, plant in ipairs(list) do
+    for _, plant in ipairs(plantList) do
         items[#items + 1] = {
             id = plant.id,
             label = plant.id,
@@ -787,16 +785,15 @@ end
 local function recipesView()
     local items = {}
     for _, recipe in ipairs(recipes.list) do
-        local metadata = { { label = 'Needs', value = needsText(recipe) } }
-
         items[#items + 1] = {
             id = recipe.id,
             label = recipe.label,
             description = makesText(recipe),
-            metadata = metadata,
+            metadata = { { label = 'Needs', value = needsText(recipe) } },
             action = 'recipe:select:' .. recipe.id,
         }
     end
+    local drugs = recipeDrugs()
 
     return {
         id = 'recipes', label = 'Recipes', icon = 'FlaskConical',
@@ -807,8 +804,8 @@ local function recipesView()
                 {
                     type = 'form', id = 'recipe-create', title = 'New recipe',
                     fields = {
-                        { id = 'drug', label = 'Drug', type = 'select', options = recipeDrugs(),
-                            default = recipeDrugs()[1] and recipeDrugs()[1].value },
+                        { id = 'drug', label = 'Drug', type = 'select', options = drugs,
+                            default = drugs[1] and drugs[1].value },
                         { id = 'name', label = 'Name', type = 'text', required = true,
                             description = 'Letters and numbers only, starting with a letter. e.g. Snow' },
                         { id = 'item', label = 'Item it makes', type = 'text',

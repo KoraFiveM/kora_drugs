@@ -102,8 +102,7 @@ local jointItem = {
     ak47_weed = 'ak47_joint',
     amnesia_weed = 'amnesia_joint',
 }
-exports.kora_core:createUseable('rolling_paper', function(source, item)
-    local src = source
+exports.kora_core:createUseable('rolling_paper', function(src, item)
     local hasItem = findWeedItem(src)
     if not hasItem then Kora.notify.send(src, {title = 'qb-drugs', message = 'You need a weed item to roll', type = 'error'}) return end
     local finished = Kora.callback.trigger(src, 'qb-drugs:client:rolling')

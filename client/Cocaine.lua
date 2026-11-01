@@ -1,4 +1,3 @@
-
 local function setStage()
     CreateThread(function()
         if GetResourceState('bob74_ipl') ~= 'missing' then
@@ -14,6 +13,7 @@ local function setStage()
 end
 
 setStage()
+
 local function cutCoke(coords, offset, rotation)
     local animDict, animName = "anim@amb@business@coc@coc_unpack_cut_left@", "coke_cut_v5_coccutter"
     Kora.stream.loadAnimDict(animDict)
@@ -67,30 +67,29 @@ local function cutCoke(coords, offset, rotation)
 end
 
 local function bagCoke(coords, offset, rotation)
-    local ver = ""
-	local animDict, animName = "anim@amb@business@meth@meth_smash_weight_check@", "break_weigh_"..ver.."char01"
+	local animDict, animName = "anim@amb@business@meth@meth_smash_weight_check@", "break_weigh_char01"
 	Kora.stream.loadAnimDict(animDict)
 	local animDuration = GetAnimDuration(animDict, animName) * 1000
 	local ped = PlayerPedId()
 	local scenePos, sceneRot = vector3(coords.x + offset.x, coords.y + offset.y,coords.z + offset.z +0.03), rotation
 	local scenes = {
     	{
-    		{	hash = "bkr_prop_coke_cutblock_01",	animName = "break_weigh_"..ver.."box01"},
-    		{	hash = "bkr_prop_coke_fullmetalbowl_02",	animName = "break_weigh_"..ver.."box01^1"},
-    		{	hash = "bkr_prop_coke_cutblock_01",	animName = "break_weigh_"..ver.."methbag01"}
+    		{	hash = "bkr_prop_coke_cutblock_01",	animName = "break_weigh_box01"},
+    		{	hash = "bkr_prop_coke_fullmetalbowl_02",	animName = "break_weigh_box01^1"},
+    		{	hash = "bkr_prop_coke_cutblock_01",	animName = "break_weigh_methbag01"}
     	},
     	{
-    		{	hash = "xm3_prop_xm3_bag_coke_01a",	animName = "break_weigh_"..ver.."methbag01^1"},
-    		{	hash = "xm3_prop_xm3_bag_coke_01a",	animName = "break_weigh_"..ver.."methbag01^2"},
-    		{	hash = "xm3_prop_xm3_bag_coke_01a",	animName = "break_weigh_"..ver.."methbag01^3"}
+    		{	hash = "xm3_prop_xm3_bag_coke_01a",	animName = "break_weigh_methbag01^1"},
+    		{	hash = "xm3_prop_xm3_bag_coke_01a",	animName = "break_weigh_methbag01^2"},
+    		{	hash = "xm3_prop_xm3_bag_coke_01a",	animName = "break_weigh_methbag01^3"}
     	},
     	{
-    		{	hash = "bkr_prop_coke_fullscoop_01a",	animName = "break_weigh_"..ver.."scoop"},
-    		{	hash = "bkr_prop_coke_scale_01",	animName = "break_weigh_"..ver.."scale"},
-    		{	hash = "bkr_prop_fakeid_penclipboard",	animName = "break_weigh_"..ver.."pen"}
+    		{	hash = "bkr_prop_coke_fullscoop_01a",	animName = "break_weigh_scoop"},
+    		{	hash = "bkr_prop_coke_scale_01",	animName = "break_weigh_scale"},
+    		{	hash = "bkr_prop_fakeid_penclipboard",	animName = "break_weigh_pen"}
     	},
     	{
-    		{	hash = "bkr_prop_fakeid_clipboard_01a",	animName = "break_weigh_"..ver.."clipboard"},
+    		{	hash = "bkr_prop_fakeid_clipboard_01a",	animName = "break_weigh_clipboard"},
     	}
     }
     local scenesList, entitiesList = {}, {}
@@ -122,6 +121,7 @@ local function bagCoke(coords, offset, rotation)
     RemoveAnimDict(animDict)
     FreezeEntityPosition(ped, false)
 end
+
 stepHooks['Cocaine:cutting'] = {
     run = function(_, location)
         cutCoke(location.coords, location.offset, location.rotation)

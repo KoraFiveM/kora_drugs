@@ -166,7 +166,6 @@ function craft(src, recipe, meta)
     return exports['qb-inventory']:AddItem(src, recipe.receive.item, recipe.receive.amount, nil, meta)
 end
 
-
 function RegisterLabTeleport(name, drug, step)
     local inside = {} -- source -> { old = bucket before entering, enter = vec, exit = vec }
 

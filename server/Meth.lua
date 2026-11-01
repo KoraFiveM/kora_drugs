@@ -15,9 +15,7 @@ local function newCookState()
 		heated    = false,
 		smashed   = false,
 		pourAt    = now,
-		heatedAt  = nil,
-		smashedAt = nil,
-        minTime = os.time() + 25
+		minTime   = now + 25,
 	}
 end
 
