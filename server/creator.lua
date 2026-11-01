@@ -39,10 +39,6 @@ local function adminCallback(name, handler)
     end)
 end
 
--- ----------------------------------------------------------------------------
--- Items
--- ----------------------------------------------------------------------------
-
 local function allItems()
     local ok, items = pcall(function() return exports['qb-core']:GetShared('Items') end)
     if ok and type(items) == 'table' then return items end
@@ -86,10 +82,6 @@ local function searchItems(query, isAdded)
     while #results > limits.itemResults do results[#results] = nil end
     return { results = results, total = total }
 end
-
--- ----------------------------------------------------------------------------
--- Pieces of event data that several events share
--- ----------------------------------------------------------------------------
 
 local function cleanDisable(value)
     local disable = {}
@@ -193,10 +185,6 @@ end
 local function noLocations()
     return {}
 end
-
--- ----------------------------------------------------------------------------
--- Plants (the '<Name>:pick' rows)
--- ----------------------------------------------------------------------------
 
 local function defaultPicking()
     return {
@@ -364,9 +352,7 @@ adminCallback('qbdrugs:creator:delete', function(_, id)
     return true
 end)
 
--- ----------------------------------------------------------------------------
 -- Event data rules. Every event type below is built from these.
--- ----------------------------------------------------------------------------
 
 -- Returns defaults() and clean(data) for events that only have target text. `template` holds the
 -- default for each text field.
@@ -618,13 +604,11 @@ local function cleanCustomDrugs(data)
     return clean
 end
 
--- ----------------------------------------------------------------------------
 -- Event types. Each entry says how an event's data and locations are made, cleaned and read.
 --   permanent       can never be deleted
 --   fixedLocations  the position is fixed; the creator cannot change it
 --   seedLocations   the row is created with these when it does not exist
 --   fillLocations   an existing row without a position gets seedLocations
--- ----------------------------------------------------------------------------
 
 local function labEvent(seedLocations)
     local defaults, clean = textRules({ enterTarget = 'Enter Lab', exitTarget = 'Exit Lab' })
@@ -746,10 +730,6 @@ local eventTypes = {
 -- Events made on the Custom drugs page all share this type.
 local customEvent = pointsEvent{ 'Working', 'interact', 'BriefCase', custom = true }
 
--- ----------------------------------------------------------------------------
--- Finding, reading and saving events
--- ----------------------------------------------------------------------------
-
 local reservedNames = { pick = true, settings = true }
 
 -- 'Opium:cook' -> 'Opium', 'cook'. Nothing when the step is not shaped like a custom event.
@@ -842,10 +822,6 @@ local function dropEvent(step)
     return true
 end
 
--- ----------------------------------------------------------------------------
--- Cornerselling page
--- ----------------------------------------------------------------------------
-
 local function cornerPayload()
     local event = getEvent(cornerStep)
     local shared, items = allItems(), {}
@@ -861,10 +837,6 @@ adminCallback('qbdrugs:creator:corner:search', function(_, query)
     local priced = getEvent(cornerStep).data.pricing or {}
     return searchItems(query, function(name) return priced[name] ~= nil end)
 end)
-
--- ----------------------------------------------------------------------------
--- Recipes page
--- ----------------------------------------------------------------------------
 
 local function effectiveGive(saved, id)
     local entry = saved[id]
@@ -976,9 +948,7 @@ adminCallback('qbdrugs:creator:recipes:delete', function(_, id)
     end)
 end)
 
--- ----------------------------------------------------------------------------
 -- Custom drugs, custom events, and deleting or restoring base events
--- ----------------------------------------------------------------------------
 
 local function customPayload()
     local registry = customRegistry()
@@ -1154,10 +1124,6 @@ adminCallback('qbdrugs:creator:event:restore', function(_, step)
     ReloadEvents(step)
     return payload
 end)
-
--- ----------------------------------------------------------------------------
--- Start up and command
--- ----------------------------------------------------------------------------
 
 CreateThread(function()
     Wait(1000)
