@@ -3,9 +3,7 @@
 if qbdrugsServerFunctionsLoaded then return end
 qbdrugsServerFunctionsLoaded = true
 
--- ----------------------------------------------------------------------------
 -- Validation. Anything that comes from a player or from the creator goes through these.
--- ----------------------------------------------------------------------------
 
 function decodeJson(raw, fallback)
     if type(raw) ~= 'string' or raw == '' then return fallback end
@@ -89,9 +87,7 @@ AddEventHandler('playerDropped', function()
     for _, counts in pairs(blocked) do counts[src] = nil end
 end)
 
--- ----------------------------------------------------------------------------
 -- The `kora_drugs` table: one row per step ('Cocaine:lab', 'Weed:pick', ...)
--- ----------------------------------------------------------------------------
 
 -- Creator open data is cached for Config.creator.cacheSeconds. Every write to the table clears it.
 local creatorCache, creatorGeneration = nil, 0

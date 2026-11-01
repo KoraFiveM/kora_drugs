@@ -287,8 +287,6 @@ local function bagMeth(coords, offset, rotation)
 end
 
 
--- ----------------------------------------------------------------------------
-
 local function startCook(coords, offset, rotation)
 	if not Kora.callback.trigger('qb-drugs:server:startCook') then return false end
 	methCooking(coords, offset, rotation)
