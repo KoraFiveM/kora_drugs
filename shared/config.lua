@@ -12,4 +12,10 @@ Config = Kora.config.define({
             live = true,
         }),
     }),
+    storage = Kora.config.object({
+        exampleData = Kora.config.boolean(false, {
+            label = 'Add the example drug steps on start',
+            description = 'Adds the bundled example locations (weed, cocaine, heroin, meth and so on) on start. Rows that already exist are left alone. Leave off once your own steps are set up, otherwise a step you delete in the creator is added back on the next start.',
+        }),
+    }),
 })

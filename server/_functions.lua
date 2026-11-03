@@ -201,10 +201,14 @@ function RegisterLabTeleport(name, drug, step)
     end)
 end
 
--- Create storage before the other server scripts read it; keep the example rows opt-in.
+-- Create storage before the other server scripts read it; the example rows stay opt-in.
 local sqlReady, sqlError = Kora.sql.ready()
 assert(sqlReady, sqlError)
-local installSql = assert(LoadResourceFile(GetCurrentResourceName(), 'sql/qbdrugs.sql'), 'qbdrugs: missing sql/qbdrugs.sql')
-local schemaSql = assert(installSql:match('^(CREATE TABLE.-;)'), 'qbdrugs: missing table definition')
-local created, createError = Kora.sql.query(schemaSql)
-assert(created ~= nil, createError or 'qbdrugs: could not create storage')
+if not (Config and Config.storage and Config.storage.exampleData == true) then QBDrugsSchema[1].seed = nil end
+local reports, schemaError = Kora.sql.ensureTables(QBDrugsSchema)
+assert(reports ~= nil, schemaError or 'qbdrugs: could not create storage')
+for _, report in ipairs(reports) do
+    for _, warning in ipairs(report.warnings or {}) do
+        Kora.print.warn(('[qbdrugs] %s: %s'):format(tostring(report.table), tostring(warning)))
+    end
+end

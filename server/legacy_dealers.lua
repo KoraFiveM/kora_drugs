@@ -302,8 +302,6 @@ core.Commands.Add('dealergoto', 'Teleport to a drug dealer', { { name = 'name' }
     local coords = dealers[args[1]].coords
     SetEntityCoords(GetPlayerPed(src), coords.x, coords.y, coords.z, false, false, false, false)
 end, 'admin')
-local schema = assert(LoadResourceFile(GetCurrentResourceName(), 'sql/legacy_dealers.sql'))
-for statement in schema:gmatch('(CREATE TABLE.-;)') do query(statement) end
 registerShopPolicy()
 loadDealers()
 ready = true

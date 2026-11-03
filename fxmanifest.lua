@@ -30,8 +30,8 @@ client_scripts {
 }
 
 server_scripts {
+    'server/schema.lua',
     'server/_functions.lua',
     'server/**.lua'
 }
 
-files { 'sql/qbdrugs.sql', 'sql/legacy_dealers.sql' }

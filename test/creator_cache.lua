@@ -3,6 +3,8 @@ local now = 0
 local updates = 0
 Kora = { sql = {
     ready = function() return true end,
+    NULL = '\0qbsql:null\0',
+    ensureTables = function() return {} end,
     query = function() return {} end,
     update = function() updates = updates + 1; return true end,
 } }
@@ -15,6 +17,7 @@ GetGameTimer = function() return now end
 json = { encode = function() return "{}" end }
 Config = { creator = { cacheSeconds = 30 } }
 
+dofile('server/schema.lua')
 dofile('server/_functions.lua')
 
 local builds = 0
