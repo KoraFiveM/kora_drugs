@@ -5,6 +5,7 @@ Kora = { sql = {
     ready = function() return true end,
     NULL = '\0qbsql:null\0',
     ensureTables = function() return {} end,
+    awaitTables = function() return true end,
     query = function() return {} end,
     update = function() updates = updates + 1; return true end,
 } }

@@ -26,6 +26,7 @@ local function decodeLocations(raw)
 end
 
 local function loadPlants()
+    assert(QBDrugsAwaitStorage())
     Plants = {}
     for _, row in ipairs(Kora.sql.query('SELECT * FROM `qbdrugs`') or {}) do
         local plantType, kind = row.step:match('^(%w+):([%w_]+)$')

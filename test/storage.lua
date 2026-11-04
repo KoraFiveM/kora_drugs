@@ -50,4 +50,7 @@ Config = { storage = { exampleData = true } }
 ensured = {}
 dofile('server/_functions.lua')
 assert(#QBDrugsSchema[1].seed.rows == 29, 'Config.storage.exampleData keeps the example rows')
+local waited
+Kora.sql.awaitTables = function(names) waited = names; return true end
+assert(QBDrugsAwaitStorage() == true and #waited == 3, 'scripts that read at load wait for all three tables')
 print('qbdrugs storage: readiness, schema declaration, opt-in example data, duplicate load and failure checks passed')

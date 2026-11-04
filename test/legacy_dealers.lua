@@ -85,6 +85,7 @@ exports=setmetatable({ ['qb-core']={GetCoreObject=function() return core end}, [
 })
 Kora={sql={query=sql},compat={provideExport=function(_,name,fn) registered['legacy:'..name]=fn end},
     callback={register=function(name,fn) callbacks[name]=fn end},notify={send=function() end}}
+QBDrugsAwaitStorage=function() return true end
 dofile('shared/legacy_dealers.lua')
 dofile('server/legacy_dealers.lua')
 local total=0

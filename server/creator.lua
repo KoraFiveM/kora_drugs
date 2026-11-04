@@ -269,6 +269,7 @@ local function applySettings(data, s)
 end
 
 local function plantList()
+    assert(QBDrugsAwaitStorage())
     local list = {}
     for _, row in ipairs(Kora.sql.query('SELECT * FROM `qbdrugs`', {}) or {}) do
         if row.step:match('^%w+:pick$') then

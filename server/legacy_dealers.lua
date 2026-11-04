@@ -54,6 +54,7 @@ local function roster()
     return result
 end
 local function loadDealers()
+    assert(QBDrugsAwaitStorage())
     local loaded = {}
     for _, row in ipairs(query('SELECT * FROM `dealers`')) do
         local coords, hours = decodeJson(row.coords), decodeJson(row.time)

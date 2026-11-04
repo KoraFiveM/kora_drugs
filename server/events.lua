@@ -79,6 +79,7 @@ local function signature(row)
 end
 
 local function build()
+    assert(QBDrugsAwaitStorage())
     local all = {}
     local function put(drug, step, entry)
         all[drug] = all[drug] or {}

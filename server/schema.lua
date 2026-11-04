@@ -76,3 +76,15 @@ QBDrugsSchema = {
         primary = { 'id' },
     },
 }
+
+local storageReady
+-- On a blank database the tables appear a few seconds after start; every script that reads them at load waits here first.
+function QBDrugsAwaitStorage()
+    if storageReady then return true end
+    local names = {}
+    for _, spec in ipairs(QBDrugsSchema) do names[#names + 1] = spec.name end
+    local ok, err = Kora.sql.awaitTables(names, 60000)
+    if not ok then return false, err end
+    storageReady = true
+    return true
+end
