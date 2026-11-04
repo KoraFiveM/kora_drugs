@@ -92,7 +92,7 @@ local function build()
         seen[name] = ''
     end
 
-    for _, row in ipairs(Kora.sql.query('SELECT * FROM `qbdrugs`') or {}) do
+    for _, row in ipairs(Kora.sql.query('SELECT * FROM `kora_drugs`') or {}) do
         local drug, step = splitStep(row.step)
         if drug and step ~= 'pick' then
             put(drug, step, entryFromRow(step, row))
@@ -126,7 +126,7 @@ function ReloadEvents(name)
 
     local names = {}
     for known in pairs(seen) do names[known] = true end
-    for _, row in ipairs(Kora.sql.query('SELECT `step` FROM `qbdrugs`') or {}) do
+    for _, row in ipairs(Kora.sql.query('SELECT `step` FROM `kora_drugs`') or {}) do
         names[row.step] = true
     end
     for each in pairs(names) do refreshStep(each) end

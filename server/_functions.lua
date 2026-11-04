@@ -115,7 +115,7 @@ function CachedCreatorData(build)
 end
 
 function dbRow(step)
-    local rows = Kora.sql.query('SELECT * FROM `qbdrugs` WHERE `step` = ? LIMIT 1', { step })
+    local rows = Kora.sql.query('SELECT * FROM `kora_drugs` WHERE `step` = ? LIMIT 1', { step })
     return rows and rows[1] or nil
 end
 
@@ -125,19 +125,19 @@ function dbSave(step, data, locations)
     local function done(...) InvalidateCreatorCache() return ... end
     if dbRow(step) then
         return done(Kora.sql.update(
-            'UPDATE `qbdrugs` SET `data` = ?, `locations` = ? WHERE `step` = ?',
+            'UPDATE `kora_drugs` SET `data` = ?, `locations` = ? WHERE `step` = ?',
             { json.encode(data), json.encode(locations), step }
         ))
     end
     return done(Kora.sql.update(
-        'INSERT INTO `qbdrugs` (`step`, `data`, `locations`) VALUES (?, ?, ?)',
+        'INSERT INTO `kora_drugs` (`step`, `data`, `locations`) VALUES (?, ?, ?)',
         { step, json.encode(data), json.encode(locations) }
     ))
 end
 
 function dbDelete(step)
     InvalidateCreatorCache()
-    local ok, err = Kora.sql.update('DELETE FROM `qbdrugs` WHERE `step` = ?', { step })
+    local ok, err = Kora.sql.update('DELETE FROM `kora_drugs` WHERE `step` = ?', { step })
     InvalidateCreatorCache()
     return ok, err
 end

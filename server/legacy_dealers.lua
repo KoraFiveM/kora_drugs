@@ -104,7 +104,7 @@ local function publicDelivery(row)
     return data
 end
 local function currentSession(cid)
-    return query('SELECT * FROM `qbdrugs_deliveries` WHERE `active_citizenid` = ? LIMIT 1', { cid })[1]
+    return query('SELECT * FROM `kora_drugs_deliveries` WHERE `active_citizenid` = ? LIMIT 1', { cid })[1]
 end
 local function exchange(src, row, suffix, terms)
     if not player(src, row.citizenid) then return nil, 'player_changed' end
@@ -127,7 +127,7 @@ local function issue(src, row)
     local receipt, err = exchange(src, row, 'issue', { take = {}, give = { { name = data.itemData.item, amount = data.amount } },
         cash = 0, dealerRep = 0, reason = 'qbdrugs-delivery-issue' })
     if not receipt then return nil, err end
-    query('UPDATE `qbdrugs_deliveries` SET `status` = ? WHERE `id` = ? AND `status` = ?', { 'issued', row.id, 'prepared' })
+    query('UPDATE `kora_drugs_deliveries` SET `status` = ? WHERE `id` = ? AND `status` = ?', { 'issued', row.id, 'prepared' })
     row.status = 'issued'
     data.status = 'issued'
     sendMail(row.citizenid, data)
@@ -168,7 +168,7 @@ local function begin(src, supplied)
         -- Persist pricing and penalty settings with the delivery; a config edit cannot alter an outstanding promise.
         data.rules = { marked = config.UseMarkedBills, gain = config.DeliveryRepGain, loss = config.DeliveryRepLoss,
             police = config.PoliceDeliveryModifier, wrong = config.WrongAmountFee, overdue = config.OverdueDeliveryFee }
-        query('INSERT INTO `qbdrugs_deliveries` (`citizenid`,`active_citizenid`,`status`,`data`,`created_at`) VALUES (?, ?, ?, ?, ?)',
+        query('INSERT INTO `kora_drugs_deliveries` (`citizenid`,`active_citizenid`,`status`,`data`,`created_at`) VALUES (?, ?, ?, ?, ?)',
             { cid, cid, 'prepared', json.encode(data), os.time() })
         return issue(src, assert(currentSession(cid), 'delivery insert could not be read'))
     end)
@@ -183,7 +183,7 @@ local function settle(src, supplied)
         local id = type(supplied) == 'table' and tonumber(supplied.id)
         if not row or (id and id ~= tonumber(row.id)) then
             if id and id >= 1 and id % 1 == 0 then
-                local completed = query('SELECT * FROM `qbdrugs_deliveries` WHERE `id` = ? AND `citizenid` = ? AND `status` = ? LIMIT 1', { id, cid, 'complete' })[1]
+                local completed = query('SELECT * FROM `kora_drugs_deliveries` WHERE `id` = ? AND `citizenid` = ? AND `status` = ? LIMIT 1', { id, cid, 'complete' })[1]
                 if completed then return settlementResult(completed, assert(decodeJson(completed.settlement))) end
             end
             return nil, 'no_delivery'
@@ -210,11 +210,11 @@ local function settle(src, supplied)
                 terms.give = { { name = 'markedbills', amount = 1, info = { worth = math.floor(payout) } } }
                 terms.cash = 0
             end
-            query('UPDATE `qbdrugs_deliveries` SET `status` = ?, `settlement` = ? WHERE `id` = ?', { 'settling', json.encode(terms), row.id })
+            query('UPDATE `kora_drugs_deliveries` SET `status` = ?, `settlement` = ? WHERE `id` = ?', { 'settling', json.encode(terms), row.id })
         end
         local receipt, err = exchange(src, row, 'settle', terms)
         if not receipt then return nil, err end
-        query('UPDATE `qbdrugs_deliveries` SET `status` = ?, `active_citizenid` = NULL, `completed_at` = ? WHERE `id` = ?',
+        query('UPDATE `kora_drugs_deliveries` SET `status` = ?, `active_citizenid` = NULL, `completed_at` = ? WHERE `id` = ?',
             { 'complete', os.time(), row.id })
         local result = settlementResult(row, terms)
         sendMail(cid, data, result)

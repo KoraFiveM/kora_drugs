@@ -2,7 +2,7 @@ if QBDrugsSchema then return end
 
 QBDrugsSchema = {
     {
-        name = 'qbdrugs',
+        name = 'kora_drugs',
         charset = 'utf8mb3',
         collate = 'utf8mb3_general_ci',
         columns = {
@@ -47,7 +47,7 @@ QBDrugsSchema = {
         } },
     },
     {
-        name = 'qbdrugs_deliveries',
+        name = 'kora_drugs_deliveries',
         columns = {
             { name = 'id', type = 'bigint', unsigned = true, auto_increment = true },
             { name = 'citizenid', type = 'varchar(50)' },

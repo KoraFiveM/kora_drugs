@@ -9,7 +9,7 @@ Kora = { sql = {
     ensureTables = function(specs)
         ensured[#ensured + 1] = specs
         if failure then return nil, failure end
-        return { { table = 'qbdrugs', warnings = { 'collation differs' } } }
+        return { { table = 'kora_drugs', warnings = { 'collation differs' } } }
     end,
     query = function() error('storage must be created through ensureTables') end,
 }, print = { warn = function() end } }
@@ -19,15 +19,15 @@ AddEventHandler = function() end
 dofile('server/schema.lua')
 local tables = {}
 for _, spec in ipairs(QBDrugsSchema) do tables[spec.name] = spec end
-assert(#QBDrugsSchema == 3 and tables.qbdrugs and tables.qbdrugs_deliveries and tables.dealers, 'schema declares all three tables')
-assert(tables.qbdrugs.indexes[1].unique and tables.qbdrugs.indexes[1].columns[1] == 'step', 'steps stay unique')
-assert(#tables.qbdrugs.seed.rows == 29 and tables.qbdrugs.seed.rows[1].step == 'Weed:pick', 'example rows are declared as seed rows')
+assert(#QBDrugsSchema == 3 and tables.kora_drugs and tables.kora_drugs_deliveries and tables.dealers, 'schema declares all three tables')
+assert(tables.kora_drugs.indexes[1].unique and tables.kora_drugs.indexes[1].columns[1] == 'step', 'steps stay unique')
+assert(#tables.kora_drugs.seed.rows == 29 and tables.kora_drugs.seed.rows[1].step == 'Weed:pick', 'example rows are declared as seed rows')
 dofile('server/schema.lua')
-assert(QBDrugsSchema[1] == tables.qbdrugs, 'glob reload keeps the first declaration')
+assert(QBDrugsSchema[1] == tables.kora_drugs, 'glob reload keeps the first declaration')
 
 dofile('server/_functions.lua')
 assert(#ensured == 1 and ensured[1] == QBDrugsSchema)
-assert(tables.qbdrugs.seed == nil, 'example data must remain opt-in')
+assert(tables.kora_drugs.seed == nil, 'example data must remain opt-in')
 dofile('server/_functions.lua')
 assert(#ensured == 1, 'glob reload must not initialize twice')
 

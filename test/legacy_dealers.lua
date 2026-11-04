@@ -46,15 +46,15 @@ local function sql(query, args)
         local row=rows[args[1]]
         return row and row.citizenid==args[2] and row.status==args[3] and {clone(row)} or {}
     end
-    if query:match('^SELECT %* FROM `qbdrugs_deliveries`') then
+    if query:match('^SELECT %* FROM `kora_drugs_deliveries`') then
         for _, row in ipairs(rows) do if row.active_citizenid==args[1] then return {clone(row)} end end
         return {}
     end
-    if query:match('^INSERT INTO `qbdrugs_deliveries`') then
+    if query:match('^INSERT INTO `kora_drugs_deliveries`') then
         for _, row in ipairs(rows) do assert(row.active_citizenid ~= args[1], 'duplicate active CID') end
         rows[#rows+1]={id=#rows+1,citizenid=args[1],active_citizenid=args[2],status=args[3],data=args[4],created_at=args[5]}; return {}
     end
-    if query:match('^UPDATE `qbdrugs_deliveries`') then
+    if query:match('^UPDATE `kora_drugs_deliveries`') then
         if failUpdate then failUpdate=false; return nil,'simulated ack failure' end
         if query:find('`settlement`',1,true) then rows[args[3]].status=args[1]; rows[args[3]].settlement=args[2]
         elseif query:find('`completed_at`',1,true) then rows[args[3]].status=args[1]; rows[args[3]].active_citizenid=nil

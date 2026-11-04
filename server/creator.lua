@@ -271,7 +271,7 @@ end
 local function plantList()
     assert(QBDrugsAwaitStorage())
     local list = {}
-    for _, row in ipairs(Kora.sql.query('SELECT * FROM `qbdrugs`', {}) or {}) do
+    for _, row in ipairs(Kora.sql.query('SELECT * FROM `kora_drugs`', {}) or {}) do
         if row.step:match('^%w+:pick$') then
             local record = toRecord(row)
             list[#list + 1] = {
@@ -957,7 +957,7 @@ local function customPayload()
         drugs[#drugs + 1] = byName[name]
     end
 
-    for _, row in ipairs(Kora.sql.query('SELECT `step`, `data` FROM `qbdrugs`') or {}) do
+    for _, row in ipairs(Kora.sql.query('SELECT `step`, `data` FROM `kora_drugs`') or {}) do
         local drug, name = splitCustomStep(row.step)
         if drug and byName[drug] and decodeJson(row.data, {}).custom == true then
             table.insert(byName[drug].events, { step = row.step, name = name })
@@ -1076,7 +1076,7 @@ local function seedEvent(step, kind)
         ok, err = dbSave(step, kind.defaults(), initial())
     elseif kind.fillLocations and not decodeJson(row.locations, {}).coords then
         what = 'filled the position of'
-        ok, err = Kora.sql.update('UPDATE `qbdrugs` SET `locations` = ? WHERE `step` = ?', { json.encode(initial()), step })
+        ok, err = Kora.sql.update('UPDATE `kora_drugs` SET `locations` = ? WHERE `step` = ?', { json.encode(initial()), step })
         InvalidateCreatorCache()
     else
         return

@@ -28,7 +28,7 @@ end
 local function loadPlants()
     assert(QBDrugsAwaitStorage())
     Plants = {}
-    for _, row in ipairs(Kora.sql.query('SELECT * FROM `qbdrugs`') or {}) do
+    for _, row in ipairs(Kora.sql.query('SELECT * FROM `kora_drugs`') or {}) do
         local plantType, kind = row.step:match('^(%w+):([%w_]+)$')
         local data = decodeJson(row.data, {})
         if kind == 'pick' and not data.disabled then
