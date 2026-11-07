@@ -12,6 +12,6 @@ ProgressDisableOptions = {
 
 DefaultProgress = {
     time = 5000,
-    anim = {dict = 'mp_arresting', clip = 'a_uncuff', flags = 17},
+    anim = {dict = 'mp_arresting', clip = 'a_uncuff', flag = 17},
     disable = {move = true, combat = true, car = true}
 }

@@ -16,7 +16,6 @@ provide 'qb-drugs'
 shared_scripts {
     '@kora_lib/init.lua',
     '@kora_core/init.lua',
-    '@kora_sql/init.lua',
     'shared/config.lua',
     'shared/constants.lua',
     'shared/legacy_dealers.lua',
@@ -30,6 +29,7 @@ client_scripts {
 }
 
 server_scripts {
+    '@kora_sql/init.lua',
     'server/schema.lua',
     'server/_functions.lua',
     'server/**.lua'
