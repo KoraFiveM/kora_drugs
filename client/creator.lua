@@ -1533,12 +1533,29 @@ local function loadCreator()
     return true
 end
 
+local function loadingView(id)
+    return {
+        id = id, label = 'Drug Creator', icon = 'Leaf',
+        content = { title = 'Drug Creator', blocks = { { type = 'empty', title = 'Loading Drug Creator…', icon = 'Leaf' } } },
+    }
+end
+
+-- Builds the real navigation, falling back to Plants when the remembered page no longer exists.
+local function currentNavigation()
+    local navigation = buildNavigation()
+    for i = 1, #navigation do
+        if navigation[i].id == currentView then return navigation end
+    end
+    currentView = 'plants'
+    return navigation
+end
+
 local function open()
     -- The window opens at once with a loading page; the data replaces it when it arrives.
-    Kora.nui.updateApp(APP_ID, { navigation = { {
-        id = currentView, label = 'Drug Creator', icon = 'Leaf',
-        content = { title = 'Drug Creator', blocks = { { type = 'empty', title = 'Loading Drug Creator…', icon = 'Leaf' } } },
-    } } })
+    -- It must always contain the app's defaultView ('plants'), or kora_lib rejects the update.
+    local loading = { loadingView('plants') }
+    if currentView ~= 'plants' then loading[2] = loadingView(currentView) end
+    Kora.nui.updateApp(APP_ID, { navigation = loading })
 
     CreateThread(function()
         local ok, err = loadCreator()
@@ -1547,14 +1564,14 @@ local function open()
             toast('Plant Creator', err or 'Admin permission required.')
             return
         end
-        Kora.nui.updateApp(APP_ID, { navigation = buildNavigation() })
+        Kora.nui.updateApp(APP_ID, { navigation = currentNavigation() })
     end)
 
     while true do
         Kora.nui.openApp(APP_ID, { viewId = currentView })
         if not pendingTool then break end
         runPendingTool()
-        Kora.nui.updateApp(APP_ID, { navigation = buildNavigation() })
+        Kora.nui.updateApp(APP_ID, { navigation = currentNavigation() })
     end
 end
 
