@@ -23,7 +23,9 @@ shared_scripts {
 
 client_scripts {
     'client/_functions.lua',
-    'client/**.lua'
+    'client/**.lua',
+    -- Optional FFT hooks: returns immediately unless fft_kora_hooks is true.
+    'fft_hooks.lua'
 }
 
 server_scripts {
