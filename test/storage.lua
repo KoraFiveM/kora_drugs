@@ -1,7 +1,7 @@
--- Run from qbdrugs: lua test/storage.lua
+-- Run from kora_drugs: lua test/storage.lua
 local ensured, ready, failure = {}, true, nil
 Kora = { sql = {
-    NULL = '\0qbsql:null\0',
+    NULL = '\0kora_sql:null\0',
     ready = function()
         assert(type(RegisterLabTeleport) == 'function', 'helpers must exist before SQL can yield')
         return ready, 'database unavailable'
@@ -18,39 +18,39 @@ AddEventHandler = function() end
 
 dofile('server/schema.lua')
 local tables = {}
-for _, spec in ipairs(QBDrugsSchema) do tables[spec.name] = spec end
-assert(#QBDrugsSchema == 3 and tables.kora_drugs and tables.kora_drugs_deliveries and tables.dealers, 'schema declares all three tables')
+for _, spec in ipairs(KoraDrugsSchema) do tables[spec.name] = spec end
+assert(#KoraDrugsSchema == 3 and tables.kora_drugs and tables.kora_drugs_deliveries and tables.dealers, 'schema declares all three tables')
 assert(tables.kora_drugs.indexes[1].unique and tables.kora_drugs.indexes[1].columns[1] == 'step', 'steps stay unique')
 assert(#tables.kora_drugs.seed.rows == 29 and tables.kora_drugs.seed.rows[1].step == 'Weed:pick', 'example rows are declared as seed rows')
 dofile('server/schema.lua')
-assert(QBDrugsSchema[1] == tables.kora_drugs, 'glob reload keeps the first declaration')
+assert(KoraDrugsSchema[1] == tables.kora_drugs, 'glob reload keeps the first declaration')
 
 dofile('server/_functions.lua')
-assert(#ensured == 1 and ensured[1] == QBDrugsSchema)
+assert(#ensured == 1 and ensured[1] == KoraDrugsSchema)
 assert(tables.kora_drugs.seed == nil, 'example data must remain opt-in')
 dofile('server/_functions.lua')
 assert(#ensured == 1, 'glob reload must not initialize twice')
 
-qbdrugsServerFunctionsLoaded = nil
+kora_drugsServerFunctionsLoaded = nil
 ready = false
 local ok, err = pcall(dofile, 'server/_functions.lua')
 assert(not ok and err:find('database unavailable', 1, true))
 assert(#ensured == 1, 'must not ensure before database readiness')
 
-qbdrugsServerFunctionsLoaded = nil
+kora_drugsServerFunctionsLoaded = nil
 ready, failure = true, 'CREATE permission denied'
 ok, err = pcall(dofile, 'server/_functions.lua')
 assert(not ok and err:find('CREATE permission denied', 1, true))
 
-qbdrugsServerFunctionsLoaded = nil
+kora_drugsServerFunctionsLoaded = nil
 ready, failure = true, nil
-QBDrugsSchema = nil
+KoraDrugsSchema = nil
 dofile('server/schema.lua')
 Config = { storage = { exampleData = true } }
 ensured = {}
 dofile('server/_functions.lua')
-assert(#QBDrugsSchema[1].seed.rows == 29, 'Config.storage.exampleData keeps the example rows')
+assert(#KoraDrugsSchema[1].seed.rows == 29, 'Config.storage.exampleData keeps the example rows')
 local waited
 Kora.sql.awaitTables = function(names) waited = names; return true end
-assert(QBDrugsAwaitStorage() == true and #waited == 3, 'scripts that read at load wait for all three tables')
-print('qbdrugs storage: readiness, schema declaration, opt-in example data, duplicate load and failure checks passed')
+assert(KoraDrugsAwaitStorage() == true and #waited == 3, 'scripts that read at load wait for all three tables')
+print('kora_drugs storage: readiness, schema declaration, opt-in example data, duplicate load and failure checks passed')

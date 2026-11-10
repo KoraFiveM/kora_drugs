@@ -21,7 +21,7 @@ local function handShake(initiatorPed, receiverPed, onFinished)
     end)
 end
 
-local OFFER_APP_ID = 'qbdrugs:cornerOffer'
+local OFFER_APP_ID = 'kora_drugs:cornerOffer'
 local offerAccepted = false
 
 Kora.nui.registerApp({
@@ -102,7 +102,7 @@ end
 
 local function findBuyer()
     if not drugDeal then
-        drugDeal = Kora.callback.trigger('qbdrugs:getSellableItem')
+        drugDeal = Kora.callback.trigger('kora_drugs:getSellableItem')
     end
     if not drugDeal then isSelling = false drugDeal = nil return end
     cornerPrompt = Kora.textui.show('Looking for a buyer...')
@@ -144,7 +144,7 @@ local function findBuyer()
                         ClearPedTasks(offerBuyer)
                         ClearPedTasks(PlayerPedId())
                     end)
-                    TriggerServerEvent('qbdrugs:sellToBuyer', NetworkGetNetworkIdFromEntity(offerBuyer))
+                    TriggerServerEvent('kora_drugs:sellToBuyer', NetworkGetNetworkIdFromEntity(offerBuyer))
                 end
                 endBuyer()
                 drugDeal = nil

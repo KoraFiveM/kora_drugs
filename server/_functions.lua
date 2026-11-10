@@ -1,7 +1,7 @@
 -- Helpers shared by every server script. fxmanifest loads this first, and the server/**.lua glob
 -- matches it a second time, so the guard below keeps it from registering things twice.
-if qbdrugsServerFunctionsLoaded then return end
-qbdrugsServerFunctionsLoaded = true
+if kora_drugsServerFunctionsLoaded then return end
+kora_drugsServerFunctionsLoaded = true
 
 -- Validation. Anything that comes from a player or from the creator goes through these.
 
@@ -66,9 +66,9 @@ function onCooldown(src, key)
     if active then
         blocked[key] = blocked[key] or {}
         blocked[key][src] = (blocked[key][src] or 0) + 1
-        Kora.print.warn(('[qbdrugs] player %s hit the "%s" cooldown %d time(s)'):format(src, key, blocked[key][src]))
+        Kora.print.warn(('[kora_drugs] player %s hit the "%s" cooldown %d time(s)'):format(src, key, blocked[key][src]))
         if blocked[key][src] == 5 then
-            Kora.print.error(('[qbdrugs] player %s hit the "%s" cooldown 5 times, consider taking action'):format(src, key))
+            Kora.print.error(('[kora_drugs] player %s hit the "%s" cooldown 5 times, consider taking action'):format(src, key))
             DropPlayer(src, 'You have hit the "' .. key .. '" cooldown 5 times.')
         end
     end
@@ -173,7 +173,7 @@ function RegisterLabTeleport(name, drug, step)
         return Drugs[drug] and Drugs[drug][step]
     end
 
-    Kora.callback.register(('qbdrugs:%s:Tele'):format(name), function(source, key)
+    Kora.callback.register(('kora_drugs:%s:Tele'):format(name), function(source, key)
         local location = lab() and type(key) == 'number' and lab().locations[key]
         if not (location and isNear(source, location.enter)) then return false end
 
@@ -183,7 +183,7 @@ function RegisterLabTeleport(name, drug, step)
         return true
     end)
 
-    Kora.callback.register(('qbdrugs:%s:TeleOut'):format(name), function(source)
+    Kora.callback.register(('kora_drugs:%s:TeleOut'):format(name), function(source)
         local first = lab() and lab().locations[1]
         local session = inside[source]
 
@@ -204,11 +204,11 @@ end
 -- Create storage before the other server scripts read it; the example rows stay opt-in.
 local sqlReady, sqlError = Kora.sql.ready()
 assert(sqlReady, sqlError)
-if not (Config and Config.storage and Config.storage.exampleData == true) then QBDrugsSchema[1].seed = nil end
-local reports, schemaError = Kora.sql.ensureTables(QBDrugsSchema)
-assert(reports ~= nil, schemaError or 'qbdrugs: could not create storage')
+if not (Config and Config.storage and Config.storage.exampleData == true) then KoraDrugsSchema[1].seed = nil end
+local reports, schemaError = Kora.sql.ensureTables(KoraDrugsSchema)
+assert(reports ~= nil, schemaError or 'kora_drugs: could not create storage')
 for _, report in ipairs(reports) do
     for _, warning in ipairs(report.warnings or {}) do
-        Kora.print.warn(('[qbdrugs] %s: %s'):format(tostring(report.table), tostring(warning)))
+        Kora.print.warn(('[kora_drugs] %s: %s'):format(tostring(report.table), tostring(warning)))
     end
 end

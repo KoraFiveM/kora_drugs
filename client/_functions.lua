@@ -1,5 +1,5 @@
-if qbdrugsFunctionsLoaded then return end
-qbdrugsFunctionsLoaded = true
+if kora_drugsFunctionsLoaded then return end
+kora_drugsFunctionsLoaded = true
 
 local Busy = false
 
@@ -35,7 +35,7 @@ function OnDrugs(drug, step, listener)
     if drugsLoaded then listener(Drugs[drug] and Drugs[drug][step]) end
 end
 
-RegisterNetEvent('qbdrugs:client:drugsReload', function(drug, step, entry)
+RegisterNetEvent('kora_drugs:client:drugsReload', function(drug, step, entry)
     Drugs[drug] = Drugs[drug] or {}
     Drugs[drug][step] = entry
     if not drugsLoaded then return end
@@ -46,7 +46,7 @@ end)
 CreateThread(function()
     local all = Kora.state.awaitGlobal('Drugs', 30000, 100)
     if not all then
-        print('[qbdrugs] timed out waiting for GlobalState.Drugs')
+        print('[kora_drugs] timed out waiting for GlobalState.Drugs')
         return
     end
     Drugs = all
@@ -90,7 +90,7 @@ function craftTrigger(drug, step, data, location, key)
     end
     Busy = false
 
-    if done then TriggerServerEvent('qbdrugs:server:craft', drug, step, key) end
+    if done then TriggerServerEvent('kora_drugs:server:craft', drug, step, key) end
 end
 
 function createBox(coords, rotation, options)
@@ -146,7 +146,7 @@ function LabTeleport(name, locale)
                     data.enterTarget or Kora.lang(locale .. '.enter.target'),
                     Kora.lang(locale .. '.enter.icon'),
                     function()
-                        if not Kora.callback.trigger(('qbdrugs:%s:Tele'):format(name), key) then return end
+                        if not Kora.callback.trigger(('kora_drugs:%s:Tele'):format(name), key) then return end
                         Kora.visuals.fade(vector3(location.exit.x, location.exit.y, location.exit.z), 500)
                     end,
                     function() return inGang(location.gang) end)
@@ -157,7 +157,7 @@ function LabTeleport(name, locale)
             data.exitTarget or Kora.lang(locale .. '.exit.target'),
             Kora.lang(locale .. '.exit.icon'),
             function()
-                local back = Kora.callback.trigger(('qbdrugs:%s:TeleOut'):format(name))
+                local back = Kora.callback.trigger(('kora_drugs:%s:TeleOut'):format(name))
                 if not back then return end
                 Kora.visuals.fade(back, 500)
             end)

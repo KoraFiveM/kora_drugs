@@ -22,13 +22,13 @@ dofile('client/legacy_dealers.lua')
 local checks=0
 local function check(value,label) assert(value,label);checks=checks+1 end
 local delivery={id=1,amount=2,itemData={item='weed_brick'},location={label='Taxi',coords={x=10,y=20,z=30}}}
-source=1;events['qbdrugs:client:delivery'](delivery);check(next(zones)==nil,'local event cannot create authorized delivery UI')
-source=65535;events['qbdrugs:client:delivery'](delivery);check(zones[1]~=nil,'server delivery creates target')
+source=1;events['kora_drugs:client:delivery'](delivery);check(next(zones)==nil,'local event cannot create authorized delivery UI')
+source=65535;events['kora_drugs:client:delivery'](delivery);check(zones[1]~=nil,'server delivery creates target')
 progress=false;zones[1].options[1].onSelect();check(#calls==0 and zones[1]~=nil,'cancel keeps delivery and sends no settlement')
 progress='error';zones[1].options[1].onSelect();check(zones[1]~=nil,'progress error retains retryable delivery')
 progress=true;finishResult={completed=true,id=1,cash=2000,dealerRep=1};zones[1].options[1].onSelect()
-check(next(zones)==nil and calls[1][1]=='qbdrugs:server:finishDelivery' and calls[1][2].id==1,'finish sends session ID and clears only on success')
+check(next(zones)==nil and calls[1][1]=='kora_drugs:server:finishDelivery' and calls[1][2].id==1,'finish sends session ID and clears only on success')
 activeResult=delivery;events['QBCore:Client:OnPlayerLoaded']();check(zones[lastId]~=nil,'login resumes server active route')
 events['QBCore:Client:OnPlayerUnload']();check(next(zones)==nil,'logout removes targets')
 events['QBCore:Client:OnPlayerLoaded']();events.onResourceStop('kora_drugs');check(next(zones)==nil,'stop removes targets')
-print(('qbdrugs dealer client: %d checks passed'):format(checks))
+print(('kora_drugs dealer client: %d checks passed'):format(checks))

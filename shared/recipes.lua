@@ -52,7 +52,7 @@ else
         applyRecipes(entry and entry.data and entry.data.recipes)
     end
 
-    RegisterNetEvent('qbdrugs:client:drugsReload', function(drug, step, entry)
+    RegisterNetEvent('kora_drugs:client:drugsReload', function(drug, step, entry)
         if drug == 'Recipes' and step == 'settings' then fromEntry(entry) end
     end)
 

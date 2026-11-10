@@ -7,7 +7,7 @@ local function savedLocation(entry, key)
     return type(key) == 'number' and locations[key] or nil
 end
 
-RegisterNetEvent('qbdrugs:server:craft', function(drug, step, key)
+RegisterNetEvent('kora_drugs:server:craft', function(drug, step, key)
     local src = source
     local name = tostring(drug) .. ':' .. tostring(step)
     local entry = Drugs[drug] and Drugs[drug][step]

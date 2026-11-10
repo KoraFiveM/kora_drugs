@@ -1,6 +1,6 @@
-if QBDrugsSchema then return end
+if KoraDrugsSchema then return end
 
-QBDrugsSchema = {
+KoraDrugsSchema = {
     {
         name = 'kora_drugs',
         charset = 'utf8mb3',
@@ -79,10 +79,10 @@ QBDrugsSchema = {
 
 local storageReady
 -- On a blank database the tables appear a few seconds after start; every script that reads them at load waits here first.
-function QBDrugsAwaitStorage()
+function KoraDrugsAwaitStorage()
     if storageReady then return true end
     local names = {}
-    for _, spec in ipairs(QBDrugsSchema) do names[#names + 1] = spec.name end
+    for _, spec in ipairs(KoraDrugsSchema) do names[#names + 1] = spec.name end
     local ok, err = Kora.sql.awaitTables(names, 60000)
     if not ok then return false, err end
     storageReady = true

@@ -79,7 +79,7 @@ local function signature(row)
 end
 
 local function build()
-    assert(QBDrugsAwaitStorage())
+    assert(KoraDrugsAwaitStorage())
     local all = {}
     local function put(drug, step, entry)
         all[drug] = all[drug] or {}
@@ -115,7 +115,7 @@ local function refreshStep(name)
 
     if not serverOnly[drug] then
         GlobalState.Drugs = publicDrugs() -- keeps players who join later up to date
-        TriggerClientEvent('qbdrugs:client:drugsReload', -1, drug, step, Drugs[drug][step])
+        TriggerClientEvent('kora_drugs:client:drugsReload', -1, drug, step, Drugs[drug][step])
     end
     return true
 end

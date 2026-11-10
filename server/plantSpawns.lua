@@ -26,7 +26,7 @@ local function decodeLocations(raw)
 end
 
 local function loadPlants()
-    assert(QBDrugsAwaitStorage())
+    assert(KoraDrugsAwaitStorage())
     Plants = {}
     for _, row in ipairs(Kora.sql.query('SELECT * FROM `kora_drugs`') or {}) do
         local plantType, kind = row.step:match('^(%w+):([%w_]+)$')
@@ -38,7 +38,7 @@ local function loadPlants()
 end
 
 local function registerPick(plantType)
-    RegisterNetEvent('qb_drugs:server:pick' .. plantType, function(id)
+    RegisterNetEvent('kora_drugs:server:pick' .. plantType, function(id)
         local src = source
         if onCooldown(src, 'pick') then return end
 
@@ -49,14 +49,14 @@ local function registerPick(plantType)
 
         spot.taken = true
         GlobalState[plantType] = plant.locations
-        TriggerClientEvent('qb_drugs:client:plantTaken' .. plantType, -1, id)
+        TriggerClientEvent('kora_drugs:client:plantTaken' .. plantType, -1, id)
 
         CreateThread(function()
             Wait((plant.data.respawnTime or 1) * 1000)
             if Plants[plantType] ~= plant then return end
             spot.taken = false
             GlobalState[plantType] = plant.locations
-            TriggerClientEvent('qb_drugs:client:plantRespawned' .. plantType, -1, id)
+            TriggerClientEvent('kora_drugs:client:plantRespawned' .. plantType, -1, id)
         end)
 
         exports.kora_inventory:addItem(src, plant.data.item, math.random(1, plant.data.maxGive or 1))
@@ -72,7 +72,7 @@ local function refresh()
             GlobalState[plantType] = nil
             GlobalState[plantType .. 'Data'] = nil
             published[plantType] = nil
-            TriggerClientEvent('qb_drugs:client:plantsRemove', -1, plantType)
+            TriggerClientEvent('kora_drugs:client:plantsRemove', -1, plantType)
         end
     end
 
@@ -93,7 +93,7 @@ end
 local function broadcastReload(plantType)
     local plant = Plants[plantType]
     if not plant then return end
-    TriggerClientEvent('qb_drugs:client:plantsReload', -1, plantType, plant.data, plant.locations)
+    TriggerClientEvent('kora_drugs:client:plantsReload', -1, plantType, plant.data, plant.locations)
 end
 
 ---@param plantType string?

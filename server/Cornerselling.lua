@@ -87,12 +87,12 @@ local function getSellableItem(src)
     return sellData
 end
 
-Kora.callback.register('qbdrugs:getSellableItem', function(source)
+Kora.callback.register('kora_drugs:getSellableItem', function(source)
     hasSale[source] = hasSale[source] or {}
     return getSellableItem(source)
 end)
 
-RegisterNetEvent('qbdrugs:sellToBuyer', function(netId)
+RegisterNetEvent('kora_drugs:sellToBuyer', function(netId)
     local src = source
     local buyer = Kora.world.resolveNetworkEntity(src, netId, {
         entityType = 'ped',

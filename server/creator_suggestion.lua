@@ -28,7 +28,7 @@ end
 
 -- the chat resource forgets suggestions when it restarts, so its init resends them
 AddEventHandler('chat:init', function() SyncCreatorSuggestion(source, true) end)
-AddEventHandler('qbcore:server:playerLoaded', function(src) SyncCreatorSuggestion(src, true) end)
+AddEventHandler('kora_core:server:playerLoaded', function(src) SyncCreatorSuggestion(src, true) end)
 AddEventHandler('playerDropped', function() shown[source] = nil end)
 
 AddEventHandler('onResourceStop', function(name)

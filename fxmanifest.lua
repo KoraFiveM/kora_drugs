@@ -1,8 +1,6 @@
 fx_version 'cerulean'
 game 'gta5'
 lua54 'yes'
--- Keep the legacy resource name resolvable for exports['qbdrugs'] callers.
-provide 'qbdrugs'
 author 'Kakarot'
 description 'Allows players to deliver packages and sell drugs to npcs'
 version '1.3.0'
@@ -32,7 +30,9 @@ server_scripts {
     '@kora_sql/init.lua',
     'server/schema.lua',
     'server/_functions.lua',
-    'server/**.lua'
+    'server/**.lua',
+    -- Optional FFT hooks: returns immediately unless fft_kora_hooks is true.
+    'fft_hooks_server.lua'
 }
 
 

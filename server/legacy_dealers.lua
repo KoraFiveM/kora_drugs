@@ -20,12 +20,12 @@ local function locked(src, fn)
     local ok, result, err = pcall(fn, cid)
     locks[cid] = nil
     if not ok then
-        print('[qbdrugs] dealer operation failed: ' .. tostring(result))
+        print('[kora_drugs] dealer operation failed: ' .. tostring(result))
         return nil, 'storage_unavailable'
     end
     return result, err
 end
-local function shopId(dealer) return 'qbdrugs-dealer-' .. dealer.id end
+local function shopId(dealer) return 'kora_drugs-dealer-' .. dealer.id end
 local function openHours(dealer)
     local state = GlobalState.kora_weathersync
     local hour = state and tonumber(state.hour)
@@ -54,7 +54,7 @@ local function roster()
     return result
 end
 local function loadDealers()
-    assert(QBDrugsAwaitStorage())
+    assert(KoraDrugsAwaitStorage())
     local loaded = {}
     for _, row in ipairs(query('SELECT * FROM `dealers`')) do
         local coords, hours = decodeJson(row.coords), decodeJson(row.time)
@@ -71,7 +71,7 @@ local function loadDealers()
 end
 local function stockAccess(payload, src)
     local id = payload.shopId or (payload.inventoryId and payload.inventoryId:match('^shop:(.+)$'))
-    if type(id) ~= 'string' or not id:match('^qbdrugs%-dealer%-') then return true end
+    if type(id) ~= 'string' or not id:match('^kora_drugs%-dealer%-') then return true end
     if not ready then return false end
     for name, dealer in pairs(dealers) do
         if shopId(dealer) == id then
@@ -109,7 +109,7 @@ end
 local function exchange(src, row, suffix, terms)
     if not player(src, row.citizenid) then return nil, 'player_changed' end
     terms.citizenid = row.citizenid
-    return exports.kora_inventory:ExecutePlayerExchange(src, 'qbdrugs:delivery:' .. row.id .. ':' .. suffix, terms)
+    return exports.kora_inventory:ExecutePlayerExchange(src, 'kora_drugs:delivery:' .. row.id .. ':' .. suffix, terms)
 end
 local function sendMail(cid, data, completion)
     if GetResourceState('kora_phone-stevie') ~= 'started' and GetResourceState('qb-phone') ~= 'started' then return end
@@ -119,13 +119,13 @@ local function sendMail(cid, data, completion)
     if not completion then mail.button = { enabled = true, buttonEvent = 'qb-drugs:client:setLocation', buttonData = { id = data.id } } end
     -- The pinned legacy export returns nil; delivery authority does not depend on mail transport acknowledgement.
     local ok, err = pcall(function() exports['qb-phone']:sendNewMailToOffline(cid, mail) end)
-    if not ok then print('[qbdrugs] delivery mail unavailable: ' .. tostring(err)) end
+    if not ok then print('[kora_drugs] delivery mail unavailable: ' .. tostring(err)) end
 end
 local function issue(src, row)
     if row.status ~= 'prepared' then return publicDelivery(row) end
     local data = assert(publicDelivery(row), 'invalid delivery snapshot')
     local receipt, err = exchange(src, row, 'issue', { take = {}, give = { { name = data.itemData.item, amount = data.amount } },
-        cash = 0, dealerRep = 0, reason = 'qbdrugs-delivery-issue' })
+        cash = 0, dealerRep = 0, reason = 'kora_drugs-delivery-issue' })
     if not receipt then return nil, err end
     query('UPDATE `kora_drugs_deliveries` SET `status` = ? WHERE `id` = ? AND `status` = ?', { 'issued', row.id, 'prepared' })
     row.status = 'issued'
@@ -205,7 +205,7 @@ local function settle(src, supplied)
                 if police > 0 then payout = payout * police * data.rules.police end
             end
             terms = { citizenid = cid, take = count > 0 and { { name = data.itemData.item, amount = count } } or {}, give = {},
-                cash = math.floor(payout), dealerRep = perfect and data.rules.gain or -data.rules.loss, reason = 'qbdrugs-delivery-settle' }
+                cash = math.floor(payout), dealerRep = perfect and data.rules.gain or -data.rules.loss, reason = 'kora_drugs-delivery-settle' }
             if perfect and data.rules.marked and payout > 0 then
                 terms.give = { { name = 'markedbills', amount = 1, info = { worth = math.floor(payout) } } }
                 terms.cash = 0
@@ -224,9 +224,9 @@ end
 local function notify(src, message)
     Kora.notify.send(src, { title = 'Dealer', message = message, type = 'error' })
 end
-Kora.callback.register('qbdrugs:server:beginDelivery', begin, { rateLimit = { max = 4, window = 10000 } })
-Kora.callback.register('qbdrugs:server:finishDelivery', settle, { rateLimit = { max = 4, window = 10000 } })
-Kora.callback.register('qbdrugs:server:resumeDelivery', function(src)
+Kora.callback.register('kora_drugs:server:beginDelivery', begin, { rateLimit = { max = 4, window = 10000 } })
+Kora.callback.register('kora_drugs:server:finishDelivery', settle, { rateLimit = { max = 4, window = 10000 } })
+Kora.callback.register('kora_drugs:server:resumeDelivery', function(src)
     return locked(src, function(cid) local row = currentSession(cid); return row and issue(src, row) end)
 end, { rateLimit = { max = 4, window = 10000 } })
 core.Functions.CreateCallback('qb-drugs:server:RequestConfig', function(_, cb) cb(roster()) end)
@@ -250,13 +250,13 @@ RegisterNetEvent('qb-drugs:server:giveDeliveryItems', function(data)
     local src = source
     if not eventAllowed(src) then return end
     local result, err = begin(src, data)
-    if result then TriggerClientEvent('qbdrugs:client:delivery', src, result) else notify(src, err or 'Delivery unavailable') end
+    if result then TriggerClientEvent('kora_drugs:client:delivery', src, result) else notify(src, err or 'Delivery unavailable') end
 end)
 RegisterNetEvent('qb-drugs:server:successDelivery', function(data)
     local src = source
     if not eventAllowed(src) then return end
     local result, err = settle(src, data)
-    if result then TriggerClientEvent('qbdrugs:client:deliveryFinished', src, result) else notify(src, err or 'Delivery unavailable') end
+    if result then TriggerClientEvent('kora_drugs:client:deliveryFinished', src, result) else notify(src, err or 'Delivery unavailable') end
 end)
 RegisterNetEvent('qb-drugs:server:updateDealerItems', function(_, _, name)
     -- Stock is already decremented by the inventory purchase transaction. Never trust a second client debit or refund.
@@ -273,7 +273,7 @@ local function changeDealer(src, fn)
     adminBusy = true
     local ok, err = pcall(fn)
     adminBusy = false
-    if not ok then print('[qbdrugs] dealer roster change failed: ' .. tostring(err)); notify(src, 'Dealer storage unavailable') end
+    if not ok then print('[kora_drugs] dealer roster change failed: ' .. tostring(err)); notify(src, 'Dealer storage unavailable') end
 end
 core.Commands.Add('newdealer', 'Create a drug dealer', { { name = 'name' }, { name = 'min' }, { name = 'max' } }, true, function(src, args)
     changeDealer(src, function()
@@ -309,6 +309,6 @@ ready = true
 AddEventHandler('onResourceStop', function(name)
     if name == 'kora_inventory' then ready = false end
 end)
-AddEventHandler('qbinventory:server:ready', function()
+AddEventHandler('kora_inventory:server:ready', function()
     registerShopPolicy(); loadDealers(); ready = true
 end)

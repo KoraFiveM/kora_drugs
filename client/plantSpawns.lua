@@ -24,7 +24,7 @@ local function pickDrugs(name, id)
         disable = tbl.disable,
         anim = tbl.anim
     }) then
-        TriggerServerEvent('qb_drugs:server:pick' .. name, id)
+        TriggerServerEvent('kora_drugs:server:pick' .. name, id)
     end
     Busy = false
 end
@@ -67,7 +67,7 @@ local function registerType(name)
     registered[name] = true
     Objects[name] = Objects[name] or {}
 
-    RegisterNetEvent('qb_drugs:client:plantRespawned' .. name, function(id)
+    RegisterNetEvent('kora_drugs:client:plantRespawned' .. name, function(id)
         local spot = Spots[name] and Spots[name][id]
         if spot and not Objects[name][id] then
             spot.taken = false
@@ -75,7 +75,7 @@ local function registerType(name)
         end
     end)
 
-    RegisterNetEvent('qb_drugs:client:plantTaken' .. name, function(id)
+    RegisterNetEvent('kora_drugs:client:plantTaken' .. name, function(id)
         local spot = Spots[name] and Spots[name][id]
         if spot then spot.taken = true end
         local obj = Objects[name][id]
@@ -89,20 +89,20 @@ local function initType(name)
     local settings = Kora.state.awaitGlobal(name .. 'Data', 30000, 100)
     local spots = Kora.state.awaitGlobal(name, 30000, 100)
     if not settings or not spots then
-        print(('[qbdrugs] timed out waiting for GlobalState.%s'):format(name))
+        print(('[kora_drugs] timed out waiting for GlobalState.%s'):format(name))
         return
     end
     Settings[name], Spots[name] = settings, spots
     buildType(name)
 end
 
-RegisterNetEvent('qb_drugs:client:plantsReload', function(name, settings, spots)
+RegisterNetEvent('kora_drugs:client:plantsReload', function(name, settings, spots)
     registerType(name)
     Settings[name], Spots[name] = settings, spots
     buildType(name)
 end)
 
-RegisterNetEvent('qb_drugs:client:plantsRemove', function(name)
+RegisterNetEvent('kora_drugs:client:plantsRemove', function(name)
     clearType(name)
     Settings[name], Spots[name] = nil, nil
 end)
@@ -110,7 +110,7 @@ end)
 CreateThread(function()
     local types = Kora.state.awaitGlobal('drugPlantTypes', 30000, 100)
     if not types then
-        print('[qbdrugs] timed out waiting for GlobalState.drugPlantTypes')
+        print('[kora_drugs] timed out waiting for GlobalState.drugPlantTypes')
         return
     end
     for _, name in ipairs(types) do

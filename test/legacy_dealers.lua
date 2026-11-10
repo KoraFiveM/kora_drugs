@@ -1,4 +1,4 @@
--- Run from qbdrugs: lua test/legacy_dealers.lua. Exercises state and reward boundaries, not connected gameplay.
+-- Run from kora_drugs: lua test/legacy_dealers.lua. Exercises state and reward boundaries, not connected gameplay.
 local function clone(value)
     if type(value) ~= 'table' then return value end
     local out = {}; for k,v in pairs(value) do out[k] = clone(v) end; return out
@@ -85,20 +85,20 @@ exports=setmetatable({ ['qb-core']={GetCoreObject=function() return core end}, [
 })
 Kora={sql={query=sql},compat={provideExport=function(_,name,fn) registered['legacy:'..name]=fn end},
     callback={register=function(name,fn) callbacks[name]=fn end},notify={send=function() end}}
-QBDrugsAwaitStorage=function() return true end
+KoraDrugsAwaitStorage=function() return true end
 dofile('shared/legacy_dealers.lua')
 dofile('server/legacy_dealers.lua')
 local total=0
 local function check(value, label) assert(value, label); total=total+1 end
-local begin=callbacks['qbdrugs:server:beginDelivery']; local settle=callbacks['qbdrugs:server:finishDelivery']; local resume=callbacks['qbdrugs:server:resumeDelivery']
+local begin=callbacks['kora_drugs:server:beginDelivery']; local settle=callbacks['kora_drugs:server:finishDelivery']; local resume=callbacks['kora_drugs:server:resumeDelivery']
 check(registered.GetDealers().Test.products[1].name=='weed_whitewidow','real legacy roster')
 local detached=registered.GetDealers(); detached.Test.coords.x=99
 check(registered.GetDealers().Test.coords.x==1,'roster detached')
 near=false; check(begin(1,'Test')==nil,'distant issue denied'); near=true
 bucket=1; check(begin(1,'Test')==nil,'routing bucket denied'); bucket=0
 GlobalState.kora_weathersync.hour=nil; check(begin(1,'Test')==nil,'missing clock fails closed'); GlobalState.kora_weathersync.hour=12
-check(hooks.buyItem({shopId='qbdrugs-dealer-1',itemName='weed_skunk'},1)==false,'shop reputation enforced')
-check(hooks.buyItem({shopId='qbdrugs-dealer-1',itemName='weed_whitewidow'},1)==true,'eligible shop item')
+check(hooks.buyItem({shopId='kora_drugs-dealer-1',itemName='weed_skunk'},1)==false,'shop reputation enforced')
+check(hooks.buyItem({shopId='kora_drugs-dealer-1',itemName='weed_whitewidow'},1)==true,'eligible shop item')
 check(begin(1,{dealer='Test',item=1,amount=99,coords=LegacyDealerConfig.DeliveryLocations[1].coords})==nil,'legacy oversized quantity denied')
 check(begin(1,{dealer='Test',item=1,amount=1,coords={x=999,y=999,z=999}})==nil,'legacy arbitrary destination denied')
 local delivery=assert(begin(1,{dealer='Test',amount=999,itemData={item='cash',payout=999999},coords={x=999}}))
@@ -133,11 +133,11 @@ exchangeFailure=true; check(begin(1,'Test')==nil,'full inventory issue remains r
 exchangeFailure=false; delivery=assert(resume(1)); check(#rows==prepared and delivery.status=='issued','failed issue resumes same session')
 -- Session is keyed by character, not recycled source number.
 data.citizenid='B'; check(resume(1)==nil and settle(1,{id=delivery.id})==nil,'new character cannot claim old session'); data.citizenid='A'
-handlers.onResourceStop('kora_inventory'); check(registered['qbdrugs-dealer-1'].access(1)==false and resume(1)==nil,'dependency stop closes policy')
-handlers['qbinventory:server:ready'](); check(registered['qbdrugs-dealer-1'].access(1)==true,'ready event restores policy')
+handlers.onResourceStop('kora_inventory'); check(registered['kora_drugs-dealer-1'].access(1)==false and resume(1)==nil,'dependency stop closes policy')
+handlers['kora_inventory:server:ready'](); check(registered['kora_drugs-dealer-1'].access(1)==true,'ready event restores policy')
 commands.newdealer(1,{'Denied',0,23});check(#rosterRows==1,'nonadmin roster mutation denied')
 admin=true;commands.newdealer(1,{'Added',0,23});check(#rosterRows==2 and registered.GetDealers().Added~=nil,'admin dealer persisted and published')
 commands.newdealer(1,{'Added',0,23});check(#rosterRows==2,'duplicate admin dealer rejected')
 commands.deletedealer(1,{'Added'});check(#rosterRows==1 and not registered.GetDealers().Added,'admin dealer deletion persisted')
 os.time=realTime
-print(('qbdrugs legacy dealers: %d checks passed'):format(total))
+print(('kora_drugs legacy dealers: %d checks passed'):format(total))

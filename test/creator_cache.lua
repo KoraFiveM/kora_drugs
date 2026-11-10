@@ -3,7 +3,7 @@ local now = 0
 local updates = 0
 Kora = { sql = {
     ready = function() return true end,
-    NULL = '\0qbsql:null\0',
+    NULL = '\0kora_sql:null\0',
     ensureTables = function() return {} end,
     awaitTables = function() return true end,
     query = function() return {} end,

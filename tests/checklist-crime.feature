@@ -8,7 +8,7 @@ Feature: kora_drugs — Crime
     Checklist test: As admin run /drugCreator; add/edit/remove drug steps, locations, recipes and plant spots; changes apply live.
     """
     When I run the command "/drugCreator"
-    Then the "qbdrugs:creator" app opens
+    Then the "kora_drugs:creator" app opens
     When I manually: add a drug step, a location, a recipe and a plant spot
     And I manually: edit each of them, then remove each of them
     Then I confirm: every change applies live without a restart
@@ -172,7 +172,7 @@ Feature: kora_drugs — Crime
     Given I have 1 "weed"
     When I run the command "/cornerSell"
     And I manually: target the buyer ped when it arrives
-    Then the "qbdrugs:cornerOffer" app opens
+    Then the "kora_drugs:cornerOffer" app opens
     And I confirm: the panel shows item, price, amount and total with Accept and Deny
     When I manually: click Accept
     Then I confirm: my character shakes hands and I am paid

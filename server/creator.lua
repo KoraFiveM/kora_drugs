@@ -269,7 +269,7 @@ local function applySettings(data, s)
 end
 
 local function plantList()
-    assert(QBDrugsAwaitStorage())
+    assert(KoraDrugsAwaitStorage())
     local list = {}
     for _, row in ipairs(Kora.sql.query('SELECT * FROM `kora_drugs`', {}) or {}) do
         if row.step:match('^%w+:pick$') then
@@ -287,15 +287,15 @@ local function plantList()
     return list
 end
 
-adminCallback('qbdrugs:creator:list', plantList)
+adminCallback('kora_drugs:creator:list', plantList)
 
-adminCallback('qbdrugs:creator:get', function(_, id)
+adminCallback('kora_drugs:creator:get', function(_, id)
     local row = plantRow(id)
     if not row then return fail('Unknown plant.') end
     return toRecord(row)
 end)
 
-adminCallback('qbdrugs:creator:create', function(_, name, model, item)
+adminCallback('kora_drugs:creator:create', function(_, name, model, item)
     name = trim(name, 32)
     if not (name and name:match('^%a%w*$')) then
         return fail('Name must be letters and numbers only, starting with a letter.')
@@ -318,7 +318,7 @@ adminCallback('qbdrugs:creator:create', function(_, name, model, item)
     return { id = name, data = data, locations = {} }
 end)
 
-adminCallback('qbdrugs:creator:save', function(_, id, patch)
+adminCallback('kora_drugs:creator:save', function(_, id, patch)
     if type(patch) ~= 'table' then return fail('Nothing to save.') end
     local row = plantRow(id)
     if not row then return fail('Unknown plant.') end
@@ -343,7 +343,7 @@ adminCallback('qbdrugs:creator:save', function(_, id, patch)
     return { id = id, data = data, locations = locations }
 end)
 
-adminCallback('qbdrugs:creator:delete', function(_, id)
+adminCallback('kora_drugs:creator:delete', function(_, id)
     if not plantRow(id) then return fail('Unknown plant.') end
 
     local ok, err = dbDelete(id .. ':pick')
@@ -805,13 +805,13 @@ local function saveEvent(step, patch)
     return { step = step, data = data, locations = locations }
 end
 
-adminCallback('qbdrugs:creator:event:get', function(_, step)
+adminCallback('kora_drugs:creator:event:get', function(_, step)
     if not kindFor(step) then return fail('Unknown event.') end
     local event = getEvent(step)
     return { step = step, data = event.data, locations = event.locations }
 end)
 
-adminCallback('qbdrugs:creator:event:save', function(_, step, patch)
+adminCallback('kora_drugs:creator:event:save', function(_, step, patch)
     return saveEvent(step, patch)
 end)
 
@@ -832,9 +832,9 @@ local function cornerPayload()
     return { step = cornerStep, data = event.data, items = items }
 end
 
-adminCallback('qbdrugs:creator:corner:get', cornerPayload)
+adminCallback('kora_drugs:creator:corner:get', cornerPayload)
 
-adminCallback('qbdrugs:creator:corner:search', function(_, query)
+adminCallback('kora_drugs:creator:corner:search', function(_, query)
     local priced = getEvent(cornerStep).data.pricing
     return searchItems(query, function(name) return priced[name] ~= nil end)
 end)
@@ -879,9 +879,9 @@ local function updateRecipes(change)
     return recipesPayload()
 end
 
-adminCallback('qbdrugs:creator:recipes:get', recipesPayload)
+adminCallback('kora_drugs:creator:recipes:get', recipesPayload)
 
-adminCallback('qbdrugs:creator:recipes:search', function(_, query, id)
+adminCallback('kora_drugs:creator:recipes:search', function(_, query, id)
     if not recipeInfo[id] then return fail('Unknown recipe.') end
 
     local inRecipe = {}
@@ -891,7 +891,7 @@ adminCallback('qbdrugs:creator:recipes:search', function(_, query, id)
     return searchItems(query, function(name) return inRecipe[name] == true end)
 end)
 
-adminCallback('qbdrugs:creator:recipes:set', function(_, id, give)
+adminCallback('kora_drugs:creator:recipes:set', function(_, id, give)
     if not recipeInfo[id] then return fail('Unknown recipe.') end
     local clean, err = cleanGive(give)
     if not clean then return fail(err) end
@@ -909,7 +909,7 @@ adminCallback('qbdrugs:creator:recipes:set', function(_, id, give)
     end)
 end)
 
-adminCallback('qbdrugs:creator:recipes:create', function(_, drug, name, item, amount)
+adminCallback('kora_drugs:creator:recipes:create', function(_, drug, name, item, amount)
     drug, name = trim(drug, 24), trim(name, 24)
     local id = drug and name and (drug .. ':' .. name)
     if not validRecipeId(id) then return fail('Name must be letters and numbers only, starting with a letter.') end
@@ -927,7 +927,7 @@ adminCallback('qbdrugs:creator:recipes:create', function(_, drug, name, item, am
     return payload
 end)
 
-adminCallback('qbdrugs:creator:recipes:receive', function(_, id, item, amount)
+adminCallback('kora_drugs:creator:recipes:receive', function(_, id, item, amount)
     if not recipeInfo[id] then return fail('Unknown recipe.') end
     local receive, err = checkedReceive(item, amount)
     if err then return fail(err) end
@@ -938,7 +938,7 @@ adminCallback('qbdrugs:creator:recipes:receive', function(_, id, item, amount)
     end)
 end)
 
-adminCallback('qbdrugs:creator:recipes:delete', function(_, id)
+adminCallback('kora_drugs:creator:recipes:delete', function(_, id)
     if not recipeInfo[id] then return fail('Unknown recipe.') end
 
     return updateRecipes(function(saved)
@@ -993,9 +993,9 @@ local function takenDrugName(name)
     return false
 end
 
-adminCallback('qbdrugs:creator:custom:get', customPayload)
+adminCallback('kora_drugs:creator:custom:get', customPayload)
 
-adminCallback('qbdrugs:creator:custom:drug:create', function(_, name)
+adminCallback('kora_drugs:creator:custom:drug:create', function(_, name)
     name = trim(name, 25)
     if not (name and #name <= 24 and name:match('^%a%w*$')) then
         return fail('Name must be letters and numbers only, starting with a letter, 24 at most.')
@@ -1011,7 +1011,7 @@ adminCallback('qbdrugs:creator:custom:drug:create', function(_, name)
     return payload
 end)
 
-adminCallback('qbdrugs:creator:custom:drug:delete', function(_, name)
+adminCallback('kora_drugs:creator:custom:drug:delete', function(_, name)
     return updateCustoms(function(data)
         local kept, found = {}, false
         for _, known in ipairs(data.drugs) do
@@ -1031,7 +1031,7 @@ adminCallback('qbdrugs:creator:custom:drug:delete', function(_, name)
     end)
 end)
 
-adminCallback('qbdrugs:creator:custom:event:create', function(_, drug, name)
+adminCallback('kora_drugs:creator:custom:event:create', function(_, drug, name)
     name = trim(name, 25)
     if not (name and #name <= 24 and name:match('^%a[%w_]*$')) then
         return fail('Name must be letters, numbers and _, starting with a letter, 24 at most.')
@@ -1056,7 +1056,7 @@ adminCallback('qbdrugs:creator:custom:event:create', function(_, drug, name)
     return payload
 end)
 
-adminCallback('qbdrugs:creator:custom:event:delete', function(_, step)
+adminCallback('kora_drugs:creator:custom:event:delete', function(_, step)
     if kindFor(step) ~= customEvent then return fail('Only custom events can be deleted.') end
     local ok, err = dropEvent(step)
     if not ok then return fail(err or 'Failed to delete the event.') end
@@ -1083,7 +1083,7 @@ local function seedEvent(step, kind)
     end
 
     if not ok then error(err or 'the write failed') end
-    Kora.print.warn(('[qbdrugs] %s %s'):format(what, step))
+    Kora.print.warn(('[kora_drugs] %s %s'):format(what, step))
     ReloadEvents(step)
 end
 
@@ -1094,7 +1094,7 @@ local function removable(step)
     return kind and not kind.permanent
 end
 
-adminCallback('qbdrugs:creator:event:delete', function(_, step)
+adminCallback('kora_drugs:creator:event:delete', function(_, step)
     if not removable(step) then return fail('This event cannot be deleted.') end
 
     return updateCustoms(function(data)
@@ -1107,7 +1107,7 @@ adminCallback('qbdrugs:creator:event:delete', function(_, step)
     end)
 end)
 
-adminCallback('qbdrugs:creator:event:restore', function(_, step)
+adminCallback('kora_drugs:creator:event:restore', function(_, step)
     if not removable(step) then return fail('This event cannot be restored.') end
 
     local payload, err = updateCustoms(function(data)
@@ -1135,7 +1135,7 @@ CreateThread(function()
     for step, kind in pairs(eventTypes) do
         if not removed[step] then
             local ok, err = pcall(seedEvent, step, kind)
-            if not ok then Kora.print.warn(('[qbdrugs] could not set up %s: %s'):format(step, tostring(err))) end
+            if not ok then Kora.print.warn(('[kora_drugs] could not set up %s: %s'):format(step, tostring(err))) end
         end
     end
 end)
@@ -1159,7 +1159,7 @@ local function runTogether(tasks)
     return results
 end
 
-adminCallback('qbdrugs:creator:open', function()
+adminCallback('kora_drugs:creator:open', function()
     return CachedCreatorData(function()
         local ok, r = pcall(runTogether, { plantList, cornerPayload, customPayload, recipesPayload })
         if not ok then return fail('Could not load the creator data.') end
@@ -1169,9 +1169,9 @@ end)
 
 RegisterCommand('drugCreator', function(source)
     if not isAdmin(source) then
-        Kora.print.warn(('[qbdrugs] player %s was denied /drugCreator: they do not have the "%s" ace'):format(source, 'command'))
+        Kora.print.warn(('[kora_drugs] player %s was denied /drugCreator: they do not have the "%s" ace'):format(source, 'command'))
         Kora.notify.send(source, { title = 'Drug Creator', message = 'Admin permission required.', type = 'error' })
         return
     end
-    TriggerClientEvent('qbdrugs:creator:open', source)
+    TriggerClientEvent('kora_drugs:creator:open', source)
 end, false)

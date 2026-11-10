@@ -28,7 +28,7 @@ s = take()
 assert(#s == 1 and s[1].ev == 'chat:removeSuggestion' and s[1].src == 1, 'removed when permission is lost')
 
 admins[2] = true
-handlers['qbcore:server:playerLoaded'](2)
+handlers['kora_core:server:playerLoaded'](2)
 s = take()
 assert(#s == 1 and s[1].src == 2 and s[1].ev == 'chat:addSuggestion', 'sent on player loaded')
 
