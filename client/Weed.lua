@@ -12,14 +12,14 @@ end
 stepHooks['Weed:breakNugs'] = {
     check = function()
         if exports['qb-inventory']:HasItem('dried_cola') then return true end
-        Kora.notify.send({title = "qb-drugs", message = "You don't have any dried cola", type = "error"})
+        Kora.notify.send({title = "Drugs", message = "You don't have any dried cola", type = "error"})
     end,
 }
 
 stepHooks['Weed:bagWeed'] = {
     check = function()
         if hasWeedItems() then return true end
-        Kora.notify.send({title = "qb-drugs", message = "You don't have any to bag", type = "error"})
+        Kora.notify.send({title = "Drugs", message = "You don't have any to bag", type = "error"})
     end,
 }
 

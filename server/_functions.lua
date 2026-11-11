@@ -148,7 +148,7 @@ function hasItems(src, itemList)
     for _, item in pairs(itemList) do
         if not exports['qb-inventory']:HasItem(src, item.item, item.amount) then
             hasAll = false
-            Kora.notify.send(src, { title = 'qb-drugs', message = Kora.lang('Functions.no_items', item.amount, item.item), type = 'error' })
+            Kora.notify.send(src, { title = 'Drugs', message = Kora.lang('Functions.no_items', item.amount, item.item), type = 'error' })
         end
     end
     return hasAll

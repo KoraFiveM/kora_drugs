@@ -104,7 +104,7 @@ local jointItem = {
 }
 exports.kora_core:createUseable('rolling_paper', function(src, item)
     local hasItem = findWeedItem(src)
-    if not hasItem then Kora.notify.send(src, {title = 'qb-drugs', message = 'You need a weed item to roll', type = 'error'}) return end
+    if not hasItem then Kora.notify.send(src, {title = 'Drugs', message = 'You need a weed item to roll', type = 'error'}) return end
     local finished = Kora.callback.trigger(src, 'qb-drugs:client:rolling')
     if not finished then return end
     if Inventory:RemoveItem(src, hasItem.name, 1, hasItem.slot) and Inventory:RemoveItem(src, 'rolling_paper', 1, item.slot) then

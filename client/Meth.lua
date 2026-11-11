@@ -50,7 +50,7 @@ local function toStation(location)
 end
 
 local function notify(message, type)
-	Kora.notify.send({ title = 'qb-drugs', message = message, type = type })
+	Kora.notify.send({ title = 'Drugs', message = message, type = type })
 end
 
 local function atStage(required)
