@@ -112,7 +112,7 @@ local function exchange(src, row, suffix, terms)
     return exports.kora_inventory:ExecutePlayerExchange(src, 'kora_drugs:delivery:' .. row.id .. ':' .. suffix, terms)
 end
 local function sendMail(cid, data, completion)
-    if GetResourceState('kora_phone-stevie') ~= 'started' and GetResourceState('qb-phone') ~= 'started' then return end
+    if GetResourceState('kora_phone') ~= 'started' and GetResourceState('qb-phone') ~= 'started' then return end
     local mail = { sender = data.dealer, subject = completion and 'Delivery completed' or 'Delivery request',
         message = completion and ('Your delivery has been settled. Reputation change: %s.'):format(completion.dealerRep)
             or ('Deliver %d %s to %s.'):format(data.amount, data.itemData.item, data.location.label) }
