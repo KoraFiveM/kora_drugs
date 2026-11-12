@@ -7,7 +7,7 @@ sidebar_position: 12
 
 - **Nothing appears in the world.** On a new install no steps exist. Create them in `/drugCreator` or enable `Config.storage.exampleData` once and restart. Check that the console did not show a `kora_sql` error.
 - **A bench does nothing or says nothing.** A step with no recipe does nothing. There are no built-in recipes: add one on the Recipes page and select it on the step. Also check that the items exist in the shared items.
-- **Targets are missing after editing the table by hand.** Call the `ReloadEvents` or `ReloadPlants` [export](./exports.md), or restart the resource.
+- **Targets are missing after editing the table by hand.** Call the `ReloadEvents` or `ReloadPlants` [export](./api/drugs-data.md), or restart the resource.
 - **`/drugCreator` says "Admin permission required".** The player needs the `command` ACE, see [Permissions](./permissions.md).
 - **Dealers are always closed.** Opening hours read `GlobalState.kora_weathersync.hour`. Start `kora_weathersync`; it is not declared in the manifest.
 - **Dealers fail to load on start.** A duplicate dealer name, invalid coordinates or invalid hours in the `dealers` table stops loading. Fix the row and restart.

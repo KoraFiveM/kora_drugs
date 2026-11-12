@@ -1,6 +1,6 @@
 ---
 title: Drug Creator
-sidebar_position: 5
+sidebar_position: 7
 ---
 
 # Drug Creator
