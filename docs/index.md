@@ -14,14 +14,16 @@ sidebar_position: 1
 
 Current version: see `version` in `fxmanifest.lua`.
 
-## Pages
+## Documentation map
 
-- [Features](./features.md) - what each system does and how the flows work
-- [Installation](./installation.md) - dependencies, start order and first-run setup
+- [Installation](./installation.md) - dependencies, start order, first-run setup and tests
+- [How to use](./how-to-use.md) - how steps, labs, plants, corner selling, meth, dealers and the creator work, plus a code-derived feature reference
+- [Commands](./commands.md) - player and admin commands with examples
+- [API reference](./api/index.md) - exports and creator callbacks
+  - [Drugs data and live reload](./api/drugs-data.md) - `ReloadEvents`, `ReloadPlants`, `GetDealers` and test-hook exports
+  - [Drug creator (admin tool)](./api/creator.md) - creator validation, caching and callbacks
 - [Configuration](./configuration.md) - `shared/` config files and creator-managed settings
 - [Drug Creator](./creator.md) - the admin app, its pages and validation limits
-- [Commands](./commands.md) - player and admin commands
-- [Exports](./exports.md) - server exports
 - [Events](./events.md) - net events, callbacks and listened events
 - [Items](./items.md) - items the resource reads, gives and removes
 - [Permissions](./permissions.md) - ACE and admin requirements
