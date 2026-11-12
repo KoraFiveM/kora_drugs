@@ -78,3 +78,5 @@ Native target interactions support requesting a delivery, cancellable progress, 
 The `kora_drugs`, `kora_drugs_deliveries` and `dealers` tables are created and kept up to date automatically by kora_sql on start (nothing to import); columns missing from an older table are added, existing columns and rows are never changed or replaced. The bundled example drug steps are no longer a SQL file: set `Config.storage.exampleData` to add them to `kora_drugs` on start (off by default). Rollback requires stopping the native dealer provider and preserving the delivery/receipt tables; stock code cannot safely resume these outstanding native sessions. Do not run both providers together.
 
 Run `bash test/run.sh` for controlled Lua tests of authority, replay, error recovery, admin persistence and client cleanup. These tests do not establish connected-client gameplay parity, mail delivery, UI presentation or actual database crash recovery. The isolated FXServer/MariaDB suite records those independently.
+
+Full documentation: see [docs/](docs/index.md).
