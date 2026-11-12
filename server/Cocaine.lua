@@ -1,0 +1,1 @@
+RegisterLabTeleport('cocaine', 'Cocaine', 'lab')
