@@ -1,0 +1,72 @@
+{
+  "resource": "kora_drugs",
+  "standardsRevision": "2026-11-12.2",
+  "realms": {
+    "client": [
+      "client/Cocaine.lua",
+      "client/Cornerselling.lua",
+      "client/Meth.lua",
+      "client/Weed.lua",
+      "client/_functions.lua",
+      "client/creator.lua",
+      "client/legacy_dealers.lua",
+      "client/plantSpawns.lua",
+      "fft_hooks.lua"
+    ],
+    "server": [
+      "fft_hooks_server.lua",
+      "server/Cocaine.lua",
+      "server/Cornerselling.lua",
+      "server/Meth.lua",
+      "server/Weed.lua",
+      "server/_functions.lua",
+      "server/craft.lua",
+      "server/creator.lua",
+      "server/creator_suggestion.lua",
+      "server/events.lua",
+      "server/legacy_dealers.lua",
+      "server/plantSpawns.lua",
+      "server/schema.lua"
+    ],
+    "shared": [
+      "shared/config.lua",
+      "shared/constants.lua",
+      "shared/legacy_dealers.lua",
+      "shared/recipes.lua",
+      "shared/steps.lua"
+    ],
+    "manifest": [
+      "fxmanifest.lua"
+    ],
+    "test": [
+      "test/creator_cache.lua",
+      "test/creator_suggestion.lua",
+      "test/legacy_dealers.lua",
+      "test/legacy_dealers_client.lua",
+      "test/storage.lua"
+    ]
+  },
+  "exclude": [
+    ".git/*",
+    ".github/*",
+    ".standards/*",
+    "node_modules/*",
+    "**/node_modules/*",
+    "vendor/*",
+    "**/vendor/*",
+    "web/*",
+    "ui/*",
+    "html/*",
+    "dist/*",
+    "artifacts/*",
+    "runtime/*",
+    "txData/*",
+    "storage/*",
+    "stream/*",
+    "docs/*",
+    "__pycache__/*",
+    "modules/lookup/data/*"
+  ],
+  "project": "Kora Framework",
+  "copyright": "Copyright © 2026 Kora Framework"
+}
