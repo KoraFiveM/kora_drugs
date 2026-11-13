@@ -50,7 +50,7 @@ local function toStation(location)
 end
 
 local function notify(message, type)
-	Kora.notify.send({ title = 'Drugs', message = message, type = type })
+	Kora.notify.send({ title = Kora.lang('Meth.title'), message = message, type = type })
 end
 
 local function atStage(required)
@@ -304,14 +304,14 @@ local function runDials(coords)
 	end
 
 	if not Kora.callback.trigger('qb-drugs:server:runDials') then
-		notify('Failed to run dials', 'error')
+		notify(Kora.lang('Meth.failed_dials'), 'error')
 		resetCook()
 		return false
 	end
 
 	local pour = stations.pour
 	heatingMeth(pour and pour.coords or coords)
-	notify('You Have Heated the Meth', 'success')
+	notify(Kora.lang('Meth.heated'), 'success')
 	return true
 end
 
@@ -353,7 +353,7 @@ end
 
 local function smash(coords, offset, rotation)
 	if not Kora.callback.trigger('qb-drugs:server:smash') then
-		notify('You need to heat the meth first', 'error')
+		notify(Kora.lang('Meth.heat_first'), 'error')
 		return false
 	end
 

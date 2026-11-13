@@ -40,17 +40,17 @@ end
 
 Kora.callback.register('qb-drugs:server:startCook', function(source)
 	if cooking[source] then
-		return false, "Cooking already started for this source"
+		return false, Kora.lang('Meth.cook_started')
 	end
 	if not nearStation(source, 'pour') then
-		return false, "Player is too far from the heat source"
+		return false, Kora.lang('Meth.too_far_heat')
 	end
 	local recipe = stationRecipe('pour')
 	if not recipe then
-		return false, "No recipe is set for this step"
+		return false, Kora.lang('Meth.no_recipe')
 	end
 	if not craft(source, recipe) then
-		return false, "Missing ingredients"
+		return false, Kora.lang('Meth.missing_ingredients')
 	end
 
 	local session = newCookState()
@@ -63,19 +63,19 @@ end)
 Kora.callback.register('qb-drugs:server:runDials', function(source)
 	local session = cooking[source]
 	if not session then
-		return false, "No active cooking session for this source"
+		return false, Kora.lang('Meth.no_session')
 	end
 	if not session.pour then
-		return false, "Player has not poured the chemicals yet"
+		return false, Kora.lang('Meth.chemicals_not_poured')
 	end
 	if session.heated then
-		return false, "Player has already heated this cook"
+		return false, Kora.lang('Meth.already_heated')
 	end
 	if not elapsedSince(session, 'pourAt', minStageGap.toHeat) then
-		return false, "Moving too fast"
+		return false, Kora.lang('Meth.moving_too_fast')
 	end
 	if not nearStation(source, 'heat') then
-		return false, "Player is too far from the heat source"
+		return false, Kora.lang('Meth.too_far_heat')
 	end
 
 	session.heated   = true
@@ -86,19 +86,19 @@ end)
 Kora.callback.register('qb-drugs:server:smash', function(source)
 	local session = cooking[source]
 	if not session then
-		return false, "No active cooking session for this source"
+		return false, Kora.lang('Meth.no_session')
 	end
 	if not (session.pour and session.heated) then
-		return false, "Player has not heated this cook yet"
+		return false, Kora.lang('Meth.not_heated')
 	end
 	if session.smashed then
-		return false, "Player has already smashed this cook"
+		return false, Kora.lang('Meth.already_smashed')
 	end
 	if not elapsedSince(session, 'heatedAt', minStageGap.toSmash) then
-		return false, "Moving too fast"
+		return false, Kora.lang('Meth.moving_too_fast')
 	end
 	if not nearStation(source, 'smash') then
-		return false, "Player is too far from the smash station"
+		return false, Kora.lang('Meth.too_far_smash')
 	end
 
 	session.smashed   = true

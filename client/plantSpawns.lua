@@ -17,7 +17,7 @@ local function pickDrugs(name, id)
     Busy = true
     local tbl = pickProgress(name)
     if Kora.progressbar.start({
-        label = (Settings[name] and Settings[name].progressLabel) or Kora.lang(name .. '.pick.progress') or "Picking",
+        label = (Settings[name] and Settings[name].progressLabel) or Kora.lang(name .. '.pick.progress') or Kora.lang('Plants.picking'),
         duration = tbl.time,
         useWhileDead = false,
         canCancel = true,
@@ -36,7 +36,7 @@ local function spawnProp(name, id, spot)
     exports.kora_target:addEntity(obj, {
         {
             icon = settings.icon or Kora.lang(name .. '.pick.icon') or 'coca-leaf',
-            label = settings.targetLabel or Kora.lang(name .. '.pick.target') or 'Pick Drugs',
+            label = settings.targetLabel or Kora.lang(name .. '.pick.target') or Kora.lang('Plants.pick_target'),
             onSelect = function()
                 pickDrugs(name, id)
             end,

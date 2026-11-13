@@ -46,35 +46,7 @@ KoraDrugsSchema = {
             { id = 37, step = "MethSteal:ephedrine", locations = "[{\"coords\":{\"z\":31.51,\"y\":6181.55,\"x\":-286.8}}]", data = "{\"targetLabel\":\"Steal Ephedrine\",\"recipe\":\"MethSteal:ephedrine\",\"targetIcon\":\"BriefCase\",\"custom\":true,\"anim\":{\"dict\":\"mp_arresting\",\"flag\":49,\"clip\":\"a_uncuff\"},\"progress\":{\"disable\":{\"combat\":true,\"vehicle\":true,\"move\":true},\"label\":\"Stealing Ephedrine\",\"time\":5000}}" },
         } },
     },
-    {
-        name = 'kora_drugs_deliveries',
-        columns = {
-            { name = 'id', type = 'bigint', unsigned = true, auto_increment = true },
-            { name = 'citizenid', type = 'varchar(50)' },
-            { name = 'active_citizenid', type = 'varchar(50)', null = true, default = Kora.sql.NULL },
-            { name = 'status', type = 'varchar(16)' },
-            { name = 'data', type = 'longtext' },
-            { name = 'settlement', type = 'longtext', null = true, default = Kora.sql.NULL },
-            { name = 'created_at', type = 'bigint' },
-            { name = 'completed_at', type = 'bigint', null = true, default = Kora.sql.NULL },
-        },
-        primary = { 'id' },
-        indexes = {
-            { name = 'one_active_delivery', columns = { 'active_citizenid' }, unique = true },
-            { name = 'delivery_owner', columns = { 'citizenid' } },
-        },
-    },
-    {
-        name = 'dealers',
-        columns = {
-            { name = 'id', type = 'int', auto_increment = true },
-            { name = 'name', type = 'varchar(50)', default = '0' },
-            { name = 'coords', type = 'longtext', null = true, default = Kora.sql.NULL },
-            { name = 'time', type = 'longtext', null = true, default = Kora.sql.NULL },
-            { name = 'createdby', type = 'varchar(50)', default = '0' },
-        },
-        primary = { 'id' },
-    },
+    
 }
 
 local storageReady

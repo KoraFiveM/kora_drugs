@@ -64,7 +64,7 @@ local function getSellableItem(src)
         end
     end
     if not item then
-        Kora.notify.send(src, {title = 'Drugs', message = 'You have no sellable items.', type = 'error'})
+        Kora.notify.send(src, {title = Kora.lang('Drugs.title'), message = Kora.lang('CornerSelling.no_items'), type = 'error'})
         return false
     end
 

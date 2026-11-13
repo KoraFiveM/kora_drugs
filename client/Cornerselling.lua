@@ -26,14 +26,14 @@ local offerAccepted = false
 
 Kora.nui.registerApp({
     id = OFFER_APP_ID,
-    title = 'Offer',
+    title = Kora.lang('CornerSelling.offer'),
     icon = 'DollarSign',
     layout = 'compact',
     width = 480,
     height = 350,
     placement = 'right',
     defaultView = 'offer',
-    navigation = { { id = 'offer', label = 'Offer', icon = 'DollarSign', content = { title = 'Offer', blocks = {} } } },
+    navigation = { { id = 'offer', label = Kora.lang('CornerSelling.offer'), icon = 'DollarSign', content = { title = Kora.lang('CornerSelling.offer'), blocks = {} } } },
     onAction = function(actionId)
         if actionId == 'offer:accept' then
             offerAccepted = true
@@ -49,7 +49,7 @@ Kora.nui.registerApp({
 
 local function openOffer(deal)
     offerAccepted = false
-    local title = 'Corner Selling Offer'
+    local title = Kora.lang('CornerSelling.title')
     Kora.nui.updateApp(OFFER_APP_ID, {
         navigation = {
             {
@@ -65,13 +65,13 @@ local function openOffer(deal)
                                     label = deal.itemLabel,
                                     image = deal.img,
                                     metadata = {
-                                        { label = 'Price', value = ('$%d'):format(math.floor(deal.singlePrice)) },
-                                        { label = 'Amount', value = tostring(deal.amount) },
-                                        { label = 'Total', value = ('$%d'):format(math.floor(deal.total)) }
+                                        { label = Kora.lang('CornerSelling.price'), value = ('$%d'):format(math.floor(deal.singlePrice)) },
+                                        { label = Kora.lang('CornerSelling.amount'), value = tostring(deal.amount) },
+                                        { label = Kora.lang('CornerSelling.total'), value = ('$%d'):format(math.floor(deal.total)) }
                                     },
                                     actions = {
-                                        { id = 'offer:accept', label = 'Accept', icon = 'Check', variant = 'primary' },
-                                        { id = 'offer:deny', label = 'Deny', icon = 'X', variant = 'destructive' },
+                                        { id = 'offer:accept', label = Kora.lang('CornerSelling.accept'), icon = 'Check', variant = 'primary' },
+                                        { id = 'offer:deny', label = Kora.lang('CornerSelling.deny'), icon = 'X', variant = 'destructive' },
                                     },
                                 },
                             },
@@ -105,7 +105,7 @@ local function findBuyer()
         drugDeal = Kora.callback.trigger('kora_drugs:getSellableItem')
     end
     if not drugDeal then isSelling = false drugDeal = nil return end
-    cornerPrompt = Kora.textui.show('Looking for a buyer...')
+    cornerPrompt = Kora.textui.show(Kora.lang('CornerSelling.looking'))
     repeat
         Wait(1000)
         local ped = Kora.closest.ped(GetEntityCoords(PlayerPedId()), 10.0)
@@ -119,7 +119,7 @@ local function findBuyer()
             end
         end
     until buyer ~= nil or not isSelling
-    Kora.textui.update(cornerPrompt, 'Buyer found!')
+    Kora.textui.update(cornerPrompt, Kora.lang('CornerSelling.buyer_found'))
     if not isSelling then endBuyer() return end
     repeat
         Wait(1000)
@@ -130,7 +130,7 @@ local function findBuyer()
     exports.kora_target:addEntity(buyer, {
         {
             icon = 'fas fa-handshake',
-            label = 'Sell to buyer',
+            label = Kora.lang('CornerSelling.sell_to_buyer'),
             onSelect = function()
                 if isOfferOpen then return end
 

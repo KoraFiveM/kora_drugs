@@ -10,7 +10,7 @@ function itemCheck(recipe)
         if not exports['qb-inventory']:HasItem(v.item, v.amount) then
             hasAll = false
             local itemData = exports.kora_core:getShared('items', v.item)
-            Kora.notify.send({ title = 'Drugs', message = 'You Need ' .. v.amount .. ' ' .. (itemData and itemData.label or v.item), type = 'error' })
+            Kora.notify.send({ title = Kora.lang('Drugs.title'), message = Kora.lang('Functions.no_items', v.amount, itemData and itemData.label or v.item), type = 'error' })
         end
     end
     return hasAll
