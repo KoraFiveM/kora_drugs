@@ -55,4 +55,4 @@ The rule values are copied into each delivery when it is issued, so editing the 
 
 ## Locales
 
-Labels the server and client fall back to (`Kora.lang`, for example `Cocaine.powder.progress`, `Functions.no_items`) come from the Kora locale files. This repository ships no `locales/` folder, so those keys must be provided elsewhere or the step text from the creator is used instead.
+Labels the server and client fall back to (`Kora.lang`, for example `Cocaine.powder.progress`, `Functions.no_items`) come from `locales/<language>.lua`; text set for a step in the Drug Creator takes priority over these keys. The manifest ships the `locales/` folder to clients (`files { 'locales/*.lua' }`), because client-side lookups can only read files the client has downloaded. The language follows kora_lib's `kora_locale` and `kora_locales` convars and the player's `/language` choice, and missing keys fall back to English. Keys ending in `.icon` hold icon names, not text, and must stay the same in every language.
