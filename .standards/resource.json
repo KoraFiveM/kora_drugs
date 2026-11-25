@@ -15,18 +15,19 @@
     ],
     "server": [
       "fft_hooks_server.lua",
+      "kora_versioncheck.lua",
+      "server/_functions.lua",
       "server/Cocaine.lua",
       "server/Cornerselling.lua",
-      "server/Meth.lua",
-      "server/Weed.lua",
-      "server/_functions.lua",
       "server/craft.lua",
-      "server/creator.lua",
       "server/creator_suggestion.lua",
+      "server/creator.lua",
       "server/events.lua",
       "server/legacy_dealers.lua",
+      "server/Meth.lua",
       "server/plantSpawns.lua",
-      "server/schema.lua"
+      "server/schema.lua",
+      "server/Weed.lua"
     ],
     "shared": [
       "shared/config.lua",
