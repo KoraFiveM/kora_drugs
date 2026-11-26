@@ -12,14 +12,14 @@ end
 stepHooks['Weed:breakNugs'] = {
     check = function()
         if exports['qb-inventory']:HasItem('dried_cola') then return true end
-        Kora.notify.send({title = Kora.lang('Drugs.title'), message = Kora.lang('Drugs.no_weed_to_roll'), type = "error"})
+        Kora.bridge.sendNotify({title = Kora.lang('Drugs.title'), message = Kora.lang('Drugs.no_weed_to_roll'), type = "error"})
     end,
 }
 
 stepHooks['Weed:bagWeed'] = {
     check = function()
         if hasWeedItems() then return true end
-        Kora.notify.send({title = Kora.lang('Drugs.title'), message = Kora.lang('Drugs.no_weed_to_bag'), type = "error"})
+        Kora.bridge.sendNotify({title = Kora.lang('Drugs.title'), message = Kora.lang('Drugs.no_weed_to_bag'), type = "error"})
     end,
 }
 

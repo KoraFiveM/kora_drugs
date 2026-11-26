@@ -1170,7 +1170,7 @@ end)
 RegisterCommand('drugCreator', function(source)
     if not isAdmin(source) then
         Kora.logging.warn('creator.command_denied', 'Player was denied /drugCreator: missing "command" ace', { playerId = source })
-        Kora.notify.send(source, { title = 'Drug Creator', message = 'Admin permission required.', type = 'error' })
+        Kora.bridge.sendNotify(source, { title = 'Drug Creator', message = 'Admin permission required.', type = 'error' })
         return
     end
     TriggerClientEvent('kora_drugs:creator:open', source)

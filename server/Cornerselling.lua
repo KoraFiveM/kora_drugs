@@ -64,7 +64,7 @@ local function getSellableItem(src)
         end
     end
     if not item then
-        Kora.notify.send(src, {title = Kora.lang('Drugs.title'), message = Kora.lang('CornerSelling.no_items'), type = 'error'})
+        Kora.bridge.sendNotify(src, {title = Kora.lang('Drugs.title'), message = Kora.lang('CornerSelling.no_items'), type = 'error'})
         return false
     end
 
