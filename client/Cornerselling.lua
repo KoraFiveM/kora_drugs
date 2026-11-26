@@ -105,7 +105,7 @@ local function findBuyer()
         drugDeal = Kora.callback.trigger('kora_drugs:getSellableItem')
     end
     if not drugDeal then isSelling = false drugDeal = nil return end
-    cornerPrompt = Kora.bridge.drawTextTextText(Kora.lang('CornerSelling.looking'))
+    cornerPrompt = Kora.bridge.drawText(Kora.lang('CornerSelling.looking'))
     repeat
         Wait(1000)
         local ped = Kora.closest.ped(GetEntityCoords(PlayerPedId()), 10.0)
