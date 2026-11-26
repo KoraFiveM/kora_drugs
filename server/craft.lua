@@ -34,6 +34,6 @@ RegisterNetEvent('kora_drugs:server:craft', function(drug, step, key)
     local recipe, info = stepRecipe(name, entry.data)
     if not recipe then return end
     if craft(src, recipe, hook.meta and hook.meta()) and info.successNotify then
-        Kora.notify.send(src, info.successNotify)
+        Kora.bridge.sendNotify(src, info.successNotify)
     end
 end)

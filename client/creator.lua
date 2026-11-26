@@ -126,7 +126,7 @@ local function confirmed(title, message)
 end
 
 local function toast(title, message)
-    Kora.notify.send({ title = title, message = message, type = 'error' })
+    Kora.bridge.sendNotify({ title = title, message = message, type = 'error' })
 end
 
 local function appended(list, entry)

@@ -90,7 +90,7 @@ local function passChecks(id)
 end
 
 local function endBuyer()
-    if cornerPrompt then Kora.textui.hide(cornerPrompt); cornerPrompt = nil end
+    if cornerPrompt then Kora.bridge.hideText(cornerPrompt); cornerPrompt = nil end
     if buyer then
         ClearPedTasks(buyer)
         SetEntityAsMissionEntity(buyer, false, true)
@@ -105,7 +105,7 @@ local function findBuyer()
         drugDeal = Kora.callback.trigger('kora_drugs:getSellableItem')
     end
     if not drugDeal then isSelling = false drugDeal = nil return end
-    cornerPrompt = Kora.textui.show(Kora.lang('CornerSelling.looking'))
+    cornerPrompt = Kora.bridge.drawText(Kora.lang('CornerSelling.looking'))
     repeat
         Wait(1000)
         local ped = Kora.closest.ped(GetEntityCoords(PlayerPedId()), 10.0)
@@ -119,7 +119,7 @@ local function findBuyer()
             end
         end
     until buyer ~= nil or not isSelling
-    Kora.textui.update(cornerPrompt, Kora.lang('CornerSelling.buyer_found'))
+    Kora.bridge.updateText(cornerPrompt, Kora.lang('CornerSelling.buyer_found'))
     if not isSelling then endBuyer() return end
     repeat
         Wait(1000)

@@ -50,7 +50,7 @@ local function toStation(location)
 end
 
 local function notify(message, type)
-	Kora.notify.send({ title = Kora.lang('Meth.title'), message = message, type = type })
+	Kora.bridge.sendNotify({ title = Kora.lang('Meth.title'), message = message, type = type })
 end
 
 local function atStage(required)
