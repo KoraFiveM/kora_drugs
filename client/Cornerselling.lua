@@ -144,7 +144,7 @@ local function findBuyer()
                         ClearPedTasks(offerBuyer)
                         ClearPedTasks(PlayerPedId())
                     end)
-                    TriggerServerEvent('kora_drugs:sellToBuyer', NetworkGetNetworkIdFromEntity(offerBuyer))
+                    TriggerServerEvent('kora_drugs:sellToBuyer', NetworkGetEntityIsNetworked(offerBuyer) and NetworkGetNetworkIdFromEntity(offerBuyer) or 0)
                 end
                 endBuyer()
                 drugDeal = nil
